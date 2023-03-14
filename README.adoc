@@ -1,0 +1,3 @@
+= Rust on STM32 Notebook
+
+用 Rust 编写 STM32F411 程序的笔记
