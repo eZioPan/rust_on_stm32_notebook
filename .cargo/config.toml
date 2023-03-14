@@ -1,0 +1,13 @@
+[target.thumbv7em-none-eabihf]
+# 在编译的时候，我们**可以**手动创建，并指定一个内存映射表（比如 memory.x）
+# 让链接器能正确定位机器码的位置
+#
+# 不过，如果引入了某个型号的芯片特定的 hal
+# 比如 stm32f4xx-hal，那么这个 hal 里面就会自带一个 link.x 文件
+# 这样我们只要在这里指定这个文件，并在源码文件中引用一下这个 hal（主要是要让链接器看到其附带的 link.x 文件）
+# 也可以不用手动创建映射表
+rustflags = ["-C", "link-arg=-Tmemory.x"]
+
+[build]
+# 设置默认目标为 ARMv7-M
+target = "thumbv7em-none-eabihf"

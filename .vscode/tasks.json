@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // 在编译前，预先删除 elf 文件，避免编译过程中发现 elf 无法删除而浪费编译时间
+      "group": "build",
+      "type": "shell",
+      "label": "remove elf and cargo build",
+      "windows": {
+        "command": "pwsh.exe",
+        "args": [
+          "-Command",
+          "Remove-Item ${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension} ; cargo build"
+        ]
+      },
+      "linux": {
+        "command": "bash",
+        "args": [
+          "-c",
+          "rm ${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension} ; cargo build"
+        ]
+      }
+    }
+  ]
+}

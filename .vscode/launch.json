@@ -1,0 +1,68 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "stm32f4_debug_external_openocd",
+      "preLaunchTask": "remove elf and cargo build",
+      //
+      "type": "cortex-debug",
+      // 由于是外部启动的 openocd/gdb-server
+      // 因此此处必须为 attach
+      "request": "attach",
+      // Rust 默认会生成 elf 文件的位置
+      // 该文件同时用于写入 stm32f411 以及 gdb 会读取这个文件中存储的符号信息
+      "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
+      // 这个文件是 stm32 片上外设的寄存器的内存地址信息表
+      // VSCode 插件 Cortex-Debug 会使用这个文件来显示外设的当前的状态
+      "svdPath": "${workspaceFolder}/vendor/STM32F411xx.svd",
+      // 使用外部启动的 openOCD
+      // 首先，这减少了启动 debug 的时间，其次，在必要的时候，我们可以通过 telnet 连接 openOCD 来发送一些额外的指令
+      "servertype": "external",
+      // 让 gdb 或 gdb-multiarch 连接到 openOCD 创建的 gdbServer 上
+      "gdbTarget": "127.0.0.1:3333",
+      // Windows 上的差异化配置
+      // 主要是 msys2 提供的可以 debug arm 芯片的 gdb 叫做 gdb-multiarch
+      // 这里需要修改一下
+      "windows": {
+        "name": "remove elf and cargo build",
+        "type": "cortex-debug",
+        "request": "attach",
+        "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
+        "gdbPath": "gdb-multiarch.exe"
+      },
+      // Windows 上的差异化配置
+      // 可以直接使用系统自带的 gdb
+      "linux": {
+        "name": "remove elf and cargo build",
+        "type": "cortex-debug",
+        "request": "attach",
+        "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
+        "gdbPath": "gdb",
+        // 重启的命令只有在 linux 上才是有意义的
+        // 因为 windows 上的 gdb-multiarch 会锁住 elf 文件，导致 cargo 无法覆盖 elf 文件
+        // 因此重启是没有意义的
+        "postRestartSessionCommands": [
+          "monitor echo \"\\nwill flash after RestartSession\\n\"",
+          // 刷写新文件到板子上
+          "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
+          // 让板子重置并停机
+          "monitor reset halt",
+          // 让 gdb 重新读一下新的 elf 文件
+          "file target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}"
+        ]
+      },
+
+      // 首次启动前，将 elf 文件刷板子上
+      "preAttachCommands": [
+        "monitor echo \"\\nwill flash before Attach\\n\"",
+        // 刷写文件到板子上
+        "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
+        // 让板子重置并停机
+        "monitor reset halt"
+      ]
+      // 如果需要查询 gdb 的问题，或者查询上面写的自定义 gdb 脚本是否正确运行
+      // 可以使用下面的配置，在 debug console 打印来自 gdb 的信息
+      //"showDevDebugOutput": "raw"
+    }
+  ]
+}
