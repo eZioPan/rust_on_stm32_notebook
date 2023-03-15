@@ -4,7 +4,6 @@
     {
       "name": "stm32f4_debug_external_openocd",
       "preLaunchTask": "remove elf and cargo build",
-      //
       "type": "cortex-debug",
       // 由于是外部启动的 openocd/gdb-server
       // 因此此处必须为 attach
@@ -51,7 +50,7 @@
           "file target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}"
         ]
       },
-
+      "breakAfterReset": false,
       // 首次启动前，将 elf 文件刷板子上
       "preAttachCommands": [
         "monitor echo \"\\nwill flash before Attach\\n\"",
@@ -59,10 +58,14 @@
         "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         // 让板子重置并停机
         "monitor reset halt"
-      ]
+      ],
       // 如果需要查询 gdb 的问题，或者查询上面写的自定义 gdb 脚本是否正确运行
       // 可以使用下面的配置，在 debug console 打印来自 gdb 的信息
       //"showDevDebugOutput": "raw"
+      "rttConfig": {
+        "enabled": false
+      },
+      "postRestartCommands": ["monitor rtt stop", "monitor rtt start"]
     }
   ]
 }
