@@ -47,7 +47,11 @@
           // 让板子重置并停机
           "monitor reset halt",
           // 让 gdb 重新读一下新的 elf 文件
-          "file target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}"
+          "file target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
+          // 在刷写新的程序之后，RTT handle 的内存地址都会改变，
+          // 因此要让 OpenOCD 重新拉取一下 RTT 的新地址
+          "monitor rtt stop",
+          "monitor rtt start"
         ]
       },
       "breakAfterReset": false,
@@ -57,15 +61,18 @@
         // 刷写文件到板子上
         "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         // 让板子重置并停机
-        "monitor reset halt"
+        "monitor reset halt",
+        // 在刷写新的程序之后，RTT handle 的内存地址都会改变，
+        // 因此要让 OpenOCD 重新拉取一下 RTT 的新地址
+        "monitor rtt stop",
+        "monitor rtt start"
       ],
       // 如果需要查询 gdb 的问题，或者查询上面写的自定义 gdb 脚本是否正确运行
       // 可以使用下面的配置，在 debug console 打印来自 gdb 的信息
       //"showDevDebugOutput": "raw"
       "rttConfig": {
         "enabled": false
-      },
-      "postRestartCommands": ["monitor rtt stop", "monitor rtt start"]
+      }
     }
   ]
 }
