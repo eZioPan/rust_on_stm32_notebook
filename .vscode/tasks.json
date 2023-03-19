@@ -6,18 +6,28 @@
       "group": "build",
       "type": "shell",
       "label": "remove elf and cargo build",
+      "command": "", // makes vscode happy about this config
       "windows": {
         "command": "pwsh.exe",
         "args": [
           "-Command",
-          "Remove-Item ${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension} ; cargo build"
+          "Remove-Item ${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}* ;",
+          "Remove-Item ${workspaceFolder}/target/thumbv7em-none-eabihf/debug/deps/${fileBasenameNoExtension}* ;",
+          "Remove-Item ${workspaceFolder}/target/thumbv7em-none-eabihf/debug/.cargo-lock ;",
+          "cargo build --bin ${fileBasenameNoExtension}"
         ]
-      },
+      }
+    },
+    {
+      "group": "build",
+      "type": "shell",
+      "label": "cargo build current file",
+      "command": "", // makes vscode happy about this config
       "linux": {
         "command": "bash",
         "args": [
           "-c",
-          "rm ${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension} ; cargo build"
+          "cargo build --bin ${fileBasenameNoExtension}"
         ]
       }
     }
