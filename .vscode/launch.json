@@ -1,9 +1,19 @@
 {
   "version": "0.2.0",
   "configurations": [
+    // 整体设计
+    // Cortex-Debug 相当于一个嵌入 VSCode 的 gdb/gdb-multiarch（后简称为 gdb）（虽然 Cortex-Debug 依旧需要外部的 gdb 才能运行）
+    // 并可以启动 OpenOCD、或连接上外部已经启动的 OpenOCD，以通过 OpenOCD 与目标芯片通信。
+    // 于是我们可以做这样一个设计，
+    // 首先我们要在外部启动 OpOCD，这样有两个好处，
+    //   第一是不用每次启动 debug 的时候都启动 OpenOCD，再启动 gdb，节约启动时间
+    //   其次是由于 OpenOCD 是常驻的，我们可以在外部通过 telnet 直接控制 OpenOCD 执行一些操作
+    // 之后是，VSCode 的 tasks.json 只用于构建 elf 文件，刷写的工作全部交由 OpenOCD 处理，
+    //   毕竟 OpenOCD 占用了 CMSIS-DAP/DAPLink 的 USB 端口，cargo flash 是无法刷写程序到芯片上的
+    // 然后就是要结合 Cortex-Debug 提供的 preAttachCommand postRestartCommand postResetCommand 功能，
+    //   在首次启动前、每次点击 Restart 并完成编译后，都通过 gdb 告诉 OpenOCD，要刷写新编译好的程序到主板上
     {
       "name": "stm32f4_debug_external_openocd",
-      "preLaunchTask": "remove elf and cargo build",
       "type": "cortex-debug",
       // 由于是外部启动的 openocd/gdb-server
       // 因此此处必须为 attach
@@ -23,24 +33,29 @@
       // 主要是 msys2 提供的可以 debug arm 芯片的 gdb 叫做 gdb-multiarch
       // 这里需要修改一下
       "windows": {
-        "name": "remove elf and cargo build",
+        "name": "debug with openocd and cortex-debug",
+        "preLaunchTask": "remove elf and cargo build",
         "type": "cortex-debug",
         "request": "attach",
         "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         "gdbPath": "gdb-multiarch.exe"
       },
-      // Windows 上的差异化配置
+      // Linux 上的差异化配置
       // 可以直接使用系统自带的 gdb
       "linux": {
-        "name": "remove elf and cargo build",
+        "name": "debug with openocd and cortex-debug",
         "type": "cortex-debug",
+        "preLaunchTask": "cargo build current file",
         "request": "attach",
         "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         "gdbPath": "gdb",
         // 重启的命令只有在 linux 上才是有意义的
         // 因为 windows 上的 gdb-multiarch 会锁住 elf 文件，导致 cargo 无法覆盖 elf 文件
         // 因此重启是没有意义的
-        "postRestartSessionCommands": [
+        "postRestartCommands": [
+          // 在刷写前先关闭 RTT，防止 RTT 访问不该访问的地址
+          "monitor echo \"Stop RTT\"",
+          "monitor rtt stop",
           "monitor echo \"\\nwill flash after RestartSession\\n\"",
           // 刷写新文件到板子上
           "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
@@ -50,22 +65,42 @@
           "file target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
           // 在刷写新的程序之后，RTT handle 的内存地址都会改变，
           // 因此要让 OpenOCD 重新拉取一下 RTT 的新地址
-          "monitor rtt stop",
-          "monitor rtt start"
+          "monitor echo \"\\nwill recapture RTT before Attach\"",
+          // 需要先让板子运行一遍，初始化内存之后，才能正确捕获到 RTT 的地址
+          "monitor reset run",
+          "monitor echo \"Set RTT\"",
+          "monitor rtt setup 0x20000000 128 \"SEGGER RTT\"",
+          "monitor echo \"Start RTT\\n\"",
+          "monitor rtt start",
+          // 最后让我们重置一下板子到停机的状态
+          "monitor reset halt"
+        ],
+        // 由于 rest 不会触发重新编译，因此我们这里不要让 postRest 使用 postRestart 的命令
+        "postResetCommands": [
+          // 
+          "monitor echo \"Restart Finish\""
         ]
       },
       "breakAfterReset": false,
       // 首次启动前，将 elf 文件刷板子上
       "preAttachCommands": [
-        "monitor echo \"\\nwill flash before Attach\\n\"",
+        // 在刷写前先关闭 RTT，防止 RTT 访问不该访问的地址
+        "monitor echo \"Stop RTT\"",
+        "monitor rtt stop",
+        "monitor echo \"\\nFlash\\n\"",
         // 刷写文件到板子上
         "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
-        // 让板子重置并停机
-        "monitor reset halt",
         // 在刷写新的程序之后，RTT handle 的内存地址都会改变，
         // 因此要让 OpenOCD 重新拉取一下 RTT 的新地址
-        "monitor rtt stop",
-        "monitor rtt start"
+        "monitor echo \"\\nwill recapture RTT before Attach\"",
+        // 需要先让板子运行一遍，初始化内存之后，才能正确捕获到 RTT 的地址
+        "monitor reset run",
+        "monitor echo \"Set RTT\"",
+        "monitor rtt setup 0x20000000 128 \"SEGGER RTT\"",
+        "monitor echo \"Start RTT\\n\"",
+        "monitor rtt start",
+        // 最后让我们重置一下板子到停机的状态
+        "monitor reset halt"
       ],
       // 如果需要查询 gdb 的问题，或者查询上面写的自定义 gdb 脚本是否正确运行
       // 可以使用下面的配置，在 debug console 打印来自 gdb 的信息
