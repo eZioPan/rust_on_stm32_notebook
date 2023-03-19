@@ -1,5 +1,5 @@
 [package]
-name = "blink_a_light"
+name = "rust_on_stm32_notebook"
 version = "0.1.0"
 edition = "2021"
 
