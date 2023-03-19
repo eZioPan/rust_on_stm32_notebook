@@ -14,6 +14,9 @@ SRAM 的起始地址为 0x2000 0000，终止地址为 0x2002 0000，
 
 需要注意的是，在这里，FLASH 和 RAM 这两个名字，是由 link.x 文件确定的，而非 linker script 定义的
 */
+/*
+特别的，Flash 是以 Sector 进行设计的，见 Reference Manual 的 Flash module organization 表
+*/
 MEMORY
 {
   FLASH : ORIGIN = 0x08000000, LENGTH = 512K
