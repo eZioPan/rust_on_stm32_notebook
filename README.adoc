@@ -2,6 +2,12 @@
 
 用 Rust 编写 STM32F411RET6 程序的笔记
 
+== 常见的操作注意事项
+
+. 如果是手动刷写程序到芯片上，比如通过 OpenOCD 刷写程序，那么
+.. **一定要先停机，在刷写**，执行命令 reset halt 可以停机
+.. **一定要先清除 Flash 对应的 Page，再刷写**，或者直接使用 `flash write_image erase XXXX.elf`，由 OpenOCD 依照 ELF 文件的情况，自动清除所需要的 Flash
+
 == 常见问题
 
 Q00: 就学习 STM32F411RET6 最重要的文档是哪些
