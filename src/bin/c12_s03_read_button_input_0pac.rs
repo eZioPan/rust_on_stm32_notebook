@@ -13,6 +13,7 @@ use panic_rtt_target as _;
 
 use rtt_target::rtt_init_print;
 
+// 注意到我们并没有使用任何 hal 层级的库，我们只使用了 pac 层级（实际上是 stm32f4 crate）的库
 use stm32f4xx_hal::pac::{self, interrupt};
 
 #[cortex_m_rt::entry]
@@ -59,8 +60,8 @@ fn main() -> ! {
         // STM32F411 上总计只有 16 个外部中断
         // （4 个 EXTICR，每个 EXTICR 有 4 个分块，每个分块 4 位（每个 EXTICR 的高 16 位保留不用））
         // 不能同时覆盖所有的 Pin，于是 EXIT 控制器选择了一个方法，
-        // 那就是所有 Port 中 Pin 编号相同的 Pin（比如 PA2, PB2, PC2 ... PH2），同一时刻下，只能挑一个 Port 下的 Pin 作为外部中断的来源。
-        // 这也正是 EXTIx 四个位需要设置数字的意义——已知 Pin 编号，挑选 Port 编号。
+        // 那就是所有 Port 中具有相同编号的 Pin（比如 PA2, PB2, PC2 ... PH2），同一时刻下，只能挑一个 Port 下的 Pin 作为外部中断的来源。
+        // 这也正是一个 EXTI 寄存器的某四个位需要设置数字的意义——已知 Pin 编号，挑选 Port 编号。
         device_peripheral
             .SYSCFG
             .exticr1
@@ -89,27 +90,33 @@ fn main() -> ! {
         // 见 Reference manual 的 Vector table for STM32F411xC/E 表
         //
         // 好了，到此位置，片上外设的配置就全部完成了，但是，Cortex 的运算部分还不能直接处理这个信号
-        // 由于中断的发生不会顾及内核的运行状态（要不然叫什么“中断”），于是 Cortex 处理器中，有一个专门的模块
-        // 来检测中断信号（并提醒计算核心做好准备处理中断），那就是 NVIC（Nested Vectored Interrupt Controller）
-        // 由于 NVIC 要处理的内部异常/外部中断的数量远远多与 EXIT 的数量，因此为了缩减向量表大小，节省 FLASH，
-        // EXIT 与 向量表 实际上是 多对一 的关系，其中
+        //
+        // 由于中断的发生不会顾及处理器的运行状态（要不然叫什么“中断”），让处理器即刻停下手里的工作转而处理中断是不现实的（会导致当前任务出现丢失）
+        // 于是 Cortex 处理器中，有一个专门的模块，来检测中断信号，并执行初步的中断处理，那就是 NVIC（Nested Vectored Interrupt Controller），
+        // NVIC 负责保存中断到达时，暂存核心的当前运行状态，同时从 Flash 里读取向量表，找到对应的中断处理函数的地址，配置好栈空间，接着让核心跳转到相应的位置开始执行中断处理代码
+        // 当中断处理结束之后，它还负责弹出为中断处理而新建的栈，并还原处理器核心在处理中断前一刻的状态，以便处理器继续执行原来的任务。
+        //
+        // 由于 NVIC 要处理的内部异常/外部中断的数量远远多与 EXIT 的数量，因此为了缩减向量表大小，节省 FLASH，EXIT 与 向量表 实际上是 多对一 的关系，其中
         // EXTI0 到 EXTI4（也就是 Pin 0 到 Pin 4）在向量表中有 5 个单独的处理函数指针，
         // EXTI5 到 EXTI9（也就是 Pin 5 到 Pin 9）在向量表中合并至名为 EXTI9_5 的处理函数指针，
         // EXTI10 到 EXTI15（也就是 Pin 10 到 Pin 15）在向量表中合并至名为 EXTI15_10 的处理函数指针。
         // EXTI16 至 EXIT 24，由于是特殊功能的模块产生的中断，因此每个中断都有独立的处理函数指针。
         //
-        // 在这里，我们要关掉 NVIC 中对应的接收掩码
+        // 在这里，我们要关掉 NVIC 中对应的触发掩码，以便让中断可以触发上面所说的中断处理流程
         // 如上所说，这个掩码是 Cortex 核心内部的，因此要使用的变量为 core_periperal
         // 这里我们就不能只参考 STM32F411 的手册了，还需要同时参考 Cortex-M4 Devices Generic User Guide 这本手册了
         // 依照 Cortex-M4 的手册，我们要设置的是名为 NVIC_ISER（NVIC Interrupt Set-Enable Reegisters）的寄存器
         // 然后依照 STM32F411 的 Reference Manual，EXTI0 处于向量表的 Position 6，
-        // 而第 6 号 bit 处于编号为 0 的 ISER（Position 0~31 都属于 0 号 ISER）
+        // 而第 6 号 bit 处于编号为 0 的 ISER（Position 0~31 都属于 0 号 ISER），于是
+        // 我们要将 ISER0 的索引为 6 的位设置位 1
         //
-        // 由于 unmask 有大量的副作用，因此这个函数被认为是不安全的
+        // 由于 unmask 有大量的副作用，因此这个函数被认为是不安全的，所以此处需要使用 unsafe 标注
         unsafe {
             core_peripheral.NVIC.iser[0].modify(|d| d | 1 << 6);
         };
-        // 到此一个按钮的中断设置完成了
+        // 到此一个按钮的中断初始化设置完成了
+        // 其后还需要实际设置中断发生时，我们期望产生的效果，也就是创建（准确说是覆盖）特定的中断处理函数
+        // 不过这得在另一个单独函数中配置了
 
         // 下面的事情就比较简单了，开启 GPIOC 的时钟，设置 PC13 为推挽输出，并默认置高电平
         device_peripheral
@@ -133,16 +140,19 @@ fn main() -> ! {
 
 // 特别注意，这里的中断处理函数是不安全的，仅作为原理演示用
 //
-// stm32f4xx_hal::pac::interrput 这个过程宏，我们必须要导入到本地，才能使用
-//
-// 书写中断处理函数，函数的签名是固定的，见 stm32f4xx_hal::pac::interrupt Enum
-// 这里我们要处理的中断就是 EXTI0 产生的
+// 在这里，我们要覆盖用于处理 EXTI0 的中断处理函数
+// 而这个函数名称是固定的，函数名称与中断名称的对应关系见 stm32f4xx_hal::pac::interrupt Enum
+// 这里我们要创建名为 EXTI0 的函数
+// 而且，由于 pac（实际为 stm32f4 这个 crate）并不能确定一个名为 EXIT0 的函数是否就是中断处理函数，
+// 因此我们还需要引入 stm32f4xx_hal::pac::interrput 过程宏，用过程宏将这个函数签名“标记为”对应的中断处理函数
 #[interrupt]
 unsafe fn EXTI0() {
     // 在进入中断处理函数之后，首先要做的就是清理 EXTI 的 Pending Register 中 EXTI0 的 bit
     // 由于 pac::Peripherals 之前已经初始化过了，因此这里只能“偷取”它了。
+    // 正是这一步引入了 unsafe 的操作
     let device_peripheral = pac::Peripherals::steal();
     // 清理 Pending bit
+    // 这一步很重要，由于 Pending bit 不会自动清理，会导致我们一直陷在这个中断处理流程中（ISR - Interrupt Service Routine）
     device_peripheral.EXTI.pr.write(|w| w.pr0().clear());
 
     //切换 LED 的状态

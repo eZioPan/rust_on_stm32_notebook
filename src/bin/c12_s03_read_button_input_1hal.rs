@@ -1,3 +1,6 @@
+//! 这部分代码演示的主要为中断的实际创建流程，所以芯片寄存器配置的流程讲的比较少
+//! 若想了解中断的实现机制和作用流程，可以看一下 c12_s03_read_button_input_0pac.rs 这个文件
+
 //! 这里我们要完成一个简单的操作，每当一个按钮被按下，就切换 LED 灯的亮灭
 //! 让处理器不断轮询 GPIO 自然是不合适的，因此这里我们尝试使用中断来处理
 
@@ -23,17 +26,14 @@ use stm32f4xx_hal::{
 // 由于中断处理函数一定不在主函数里（如果在主函数里，函数就被顺序执行了，这违背了中断的设计）
 // 就必然会有“线程”的切换，因此我们需要保证线程安全。
 // cortex_m crate 在 interrupt 模块下提供了 Mutex 类型，可以用于在线程间安全地传递对象，
-// （注意 Cortex-M4 是单核心的设计）这个 Mutex 能包裹一个 static 量，并使用“限制外部中断发生的方法”，保证处理器能不被干扰地完成对全局对象的访问，
+// （注意 Cortex-M4 是单核心的设计）这个 Mutex 能包裹一个全局 static 量，并使用“限制外部中断触发内核的方法”，保证处理器能不被干扰地完成对全局对象的访问，
 // 从而达到让 static 量在线程间的安全访问。
 // 不过由于 static 量是不可变的，因此我们还需要使用具有“内部可变性”的 Cell 和 RefCell 来包裹数据，以达到最终的效果
 //
-// 设置需要以 static 存储的、需要在线程间保留的变量
-//
-// G_BUTTON：按钮的 GPIO 量，是中断的触发器，在中断处理函数中主要用于清理 Pending Register
+// G_BUTTON：按钮的 GPIO 量，是中断的触发器，在中断处理函数中主要用于清理 Pending Register 中对应的 bit
 // 注意到，除了外层会使用 Mutex 和 RefCell 分别处理跨线程安全和内部可变性问题，
 // 其内部还套了一层 Option，这是由于在声明这个 staic 量时，我们不可能完成这个量的初始化，
-// 我们必须在主线程中经过操作才能完成其初始化，因此我们在这里使用 None 来“完成”初始化，
-// 之后在主线程完成实际的值注入。
+// 我们必须在主线程中经过操作才能完成其初始化，因此我们在这里使用 None 来“完成”初始化，之后在主线程完成实际的值注入。
 // 这种设计方式被称为 lazy initialization
 static G_BUTTON: Mutex<RefCell<Option<gpioa::PA0<Input>>>> = Mutex::new(RefCell::new(None));
 // G_LED：LED 的 GPIO 量，是中断产生后我们要切换电平的 GPIO
@@ -56,23 +56,17 @@ fn main() -> ! {
         let gpioc = device_peripheral.GPIOC.split();
 
         // 将 GPIO 设置为输入下拉模式，
-        // 只有输入状态的 GPIO 才可以被设置为中断来源
-        // 之后，我们要启用这个 Pin 内部的下拉电阻，防止 Pin 在外部悬空时，捕获干扰而导致输入寄存器的值随机变动
-        // 注意，输入寄存器的值是每个时钟都刷新一次的，所以采样频率是和时钟频率关联的
         let mut button = gpioa.pa0.into_pull_down_input();
 
         // SYSCFG 控制了 EXTI，因此需要启用 SYSCFG
         let mut syscfg = device_peripheral.SYSCFG.constrain();
 
-        // 虽然是在 gpio 对象上调用的方法，但实际上修改的是 SYSCFG_EXTICR1 的内容
-        // 将 EXTI0 设置为 0b0000，这样我们就将 PA0 关联上了 EXTI0
+        // 将 EXTI0 关联到 Port A
         button.make_interrupt_source(&mut syscfg);
 
-        // 类似上面，修改的其实是 EXTI_RTSR 和 EXTI_FTSR
-        // 修改各自的 0 bit，启用上升沿触发输入线
+        // 启用上升沿触发输入线
         button.trigger_on_edge(&mut device_peripheral.EXTI, Edge::Rising);
 
-        // 类似上面，修改的其实是 EXTI_IMR
         // 修改 中断请求遮罩，让 Line 0 的请求可以发送至 NVIC
         button.enable_interrupt(&mut device_peripheral.EXTI);
 
@@ -90,10 +84,6 @@ fn main() -> ! {
         cortex_m::interrupt::free(|cs| {
             // 然后解开 Mutex，并替换 RefCell 中的 None 为实际的值
             G_BUTTON.borrow(cs).replace(Some(button));
-        });
-        // 也许应该尽量减少暂停中断的时间？
-        // 所以注入 button 和 注入 led 其实可以分两个暂停块？
-        cortex_m::interrupt::free(|cs| {
             G_LED.borrow(cs).replace(Some(led));
         });
     };
@@ -113,16 +103,13 @@ fn EXTI0() {
     // 中断处理函数里也不一定需要立刻暂停中断的产生
     rprintln!("Recived EXTI0, Start to Process");
 
-    // 清除 Button 的 Pending Register，并修改 LED 的状态
+    // 清除 Button 的 Pending Register，并修改 LED 的状态，最后还要从 rtt 打印一下触发的次数
     cortex_m::interrupt::free(|cs| {
         let mut button = G_BUTTON.borrow(cs).borrow_mut();
         button.as_mut().unwrap().clear_interrupt_pending_bit();
         let mut led = G_LED.borrow(cs).borrow_mut();
         led.as_mut().unwrap().toggle();
-    });
 
-    // 最后读取以下计数，打印，然后 +1
-    cortex_m::interrupt::free(|cs| {
         let cur_count = G_COUNT.borrow(cs).get();
         rprintln!("Toggle LED, count: {}\r", cur_count);
         G_COUNT.borrow(cs).set(cur_count + 1);
