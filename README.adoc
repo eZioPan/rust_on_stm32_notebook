@@ -38,6 +38,11 @@ Q03: 串口是 Debug 口么？
 A03: 串口不是 STM32F411RET6 原生的 Debug 口，有这种误解是因为，我们经常使用**已经写好程序**的微控制器，而**那些程序**会启动串口打印一些信息。+
 STM32F411RET6 硬件定义的 Debug 接口就两种 JTAG 和 SW
 
+Q04: 如何创建最小程序
+
+A04: 可能必须得使用的库只有 cortex-m-rt 以及 panic-halt 了。 +
+特别注意，如果 Cargo.toml 中有 hal 库（比如 stm32f4xx_hal），则一定要注释掉
+
 == 一些基础概念
 
 Cortex-M4
