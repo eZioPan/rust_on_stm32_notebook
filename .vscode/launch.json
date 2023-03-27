@@ -18,6 +18,8 @@
       // 由于是外部启动的 openocd/gdb-server
       // 因此此处必须为 attach
       "request": "attach",
+      // 每次启动 debug 或重启 debug 时，都需要编译源文件
+      "preLaunchTask": "cargo build file",
       // Rust 默认会生成 elf 文件的位置
       // 该文件同时用于写入 stm32f411 以及 gdb 会读取这个文件中存储的符号信息
       "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
@@ -34,7 +36,6 @@
       // 这里需要修改一下
       "windows": {
         "name": "debug with openocd and cortex-debug",
-        "preLaunchTask": "remove elf and cargo build",
         "type": "cortex-debug",
         "request": "attach",
         "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
@@ -45,7 +46,6 @@
       "linux": {
         "name": "debug with openocd and cortex-debug",
         "type": "cortex-debug",
-        "preLaunchTask": "cargo build current file",
         "request": "attach",
         "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         "gdbPath": "gdb",
@@ -59,8 +59,6 @@
           "monitor echo \"\\nwill flash after RestartSession\\n\"",
           // 刷写新文件到板子上
           "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
-          // 让板子重置并停机
-          "monitor reset halt",
           // 让 gdb 重新读一下新的 elf 文件
           "file target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
           // 在刷写新的程序之后，RTT handle 的内存地址都会改变，
@@ -76,10 +74,7 @@
           "monitor reset halt"
         ],
         // 由于 rest 不会触发重新编译，因此我们这里不要让 postRest 使用 postRestart 的命令
-        "postResetCommands": [
-          // 
-          "monitor echo \"Restart Finish\""
-        ]
+        "postResetCommands": ["monitor echo \"Restart Finish\""]
       },
       "breakAfterReset": false,
       // 首次启动前，将 elf 文件刷板子上

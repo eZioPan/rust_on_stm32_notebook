@@ -1,9 +1,15 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-# 告诉编译器，在链接的时候，使用一个名为 link.x 的文件作为链接器脚本
-# 实际上，这个脚本是 cortex-m-rt 这个库提供的
-# 这个脚本会引入我们创建的 memory.x 这个脚本
-# 而 memory.x 脚本是用来确定 Flash 和 RAM 的地址和大小的
-rustflags = ["-C", "link-arg=-Tlink.x"]
+rustflags = [
+    # 好像 rust 自带的 rust-lld 在链接文件的时候老是卡住，arm 工具链的 arm-none-eabi-ld 似乎没有这个问题
+    "--codegen",
+    "linker=arm-none-eabi-ld",
+    # 告诉编译器，在链接的时候，使用一个名为 link.x 的文件作为链接器脚本
+    # 实际上，这个脚本是 cortex-m-rt 这个库提供的
+    # 这个脚本会引入我们创建的 memory.x 这个脚本
+    # 而 memory.x 脚本是用来确定 Flash 和 RAM 的地址和大小的
+    "--codegen",
+    "link-args=-Tlink.x",
+]
 
 [build]
 # 设置默认目标为 ARMv7-M
