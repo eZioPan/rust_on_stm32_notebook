@@ -34,7 +34,7 @@ fn main() -> ! {
         let mut wait_cnt: u32 = 1;
 
         // 启用 HSE
-        device_peripheral.RCC.cr.write(|w| w.hseon().on());
+        device_peripheral.RCC.cr.modify(|_, w| w.hseon().on());
 
         // 等待 HSE 稳定
         while device_peripheral.RCC.cr.read().hserdy().is_not_ready() {
@@ -44,28 +44,30 @@ fn main() -> ! {
         rprintln!("HSE READY, wait loop: {}\r", wait_cnt);
 
         // 启动 AHB1 上 GPIOA 和 GPIOC 的时钟
-        device_peripheral
-            .RCC
-            .ahb1enr
-            .write(|w| w.gpioaen().enabled().gpiocen().enabled());
+        device_peripheral.RCC.ahb1enr.modify(|_, w| {
+            w.gpioaen().enabled();
+            w.gpiocen().enabled();
+            w
+        });
 
         // 定位到 GPIO_A
         let gpio_a = device_peripheral.GPIOA;
         // 把 GPIOP_A8 的输出模式改到 alternate function
-        gpio_a.moder.write(|w| w.moder8().alternate());
+        gpio_a.moder.modify(|_, w| w.moder8().alternate());
         // 并将 GPIO_A8 的 alternate function 切换到 AF00
-        gpio_a.afrh.write(|w| w.afrh8().af0());
+        gpio_a.afrh.modify(|_, w| w.afrh8().af0());
 
         // 同理，我们还可以将 GPIO_PC9 也切换到 MCO_2 模式
         let gpio_c = device_peripheral.GPIOC;
-        gpio_c.moder.write(|w| w.moder9().alternate());
-        gpio_c.afrh.write(|w| w.afrh9().af0());
+        gpio_c.moder.modify(|_, w| w.moder9().alternate());
+        gpio_c.afrh.modify(|_, w| w.afrh9().af0());
 
         // 最后，选择 MCO 正确的输出源
-        device_peripheral
-            .RCC
-            .cfgr
-            .write(|w| w.mco1().hsi().mco2().hse());
+        device_peripheral.RCC.cfgr.modify(|_, w| {
+            w.mco1().hsi();
+            w.mco2().hse();
+            w
+        });
         rprintln!("MC1&2_READY\r");
     } else {
         rprintln!("MC1&2_NOT_OUT\r");

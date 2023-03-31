@@ -28,18 +28,21 @@ fn main() -> ! {
         device_peripheral
             .RCC
             .ahb1enr
-            .write(|w| w.gpioaen().enabled());
+            .modify(|_, w| w.gpioaen().enabled());
 
         // 将按钮所在的 PA0 的模式设置为输入
         // 只有输入状态的 GPIO 才可以被设置为中断来源
-        device_peripheral.GPIOA.moder.write(|w| w.moder0().input());
+        device_peripheral
+            .GPIOA
+            .moder
+            .modify(|_, w| w.moder0().input());
         // 并将 PA0 设置为下拉模式，这样就启用了 PA0 自带的弱下拉电阻
         // 防止 Pin 在外部悬空时，捕获干扰而导致输入寄存器的值随机变动
         // 注意，输入寄存器的值是每个时钟都刷新一次的，所以采样频率是和时钟频率关联的
         device_peripheral
             .GPIOA
             .pupdr
-            .write(|w| w.pupdr0().pull_down());
+            .modify(|_, w| w.pupdr0().pull_down());
 
         // 接着，我们要配置外部中断控制器，让它捕获来自按钮的信息
         //
@@ -47,7 +50,7 @@ fn main() -> ! {
         device_peripheral
             .RCC
             .apb2enr
-            .write(|w| w.syscfgen().enabled());
+            .modify(|_, w| w.syscfgen().enabled());
 
         // 见 Reference Manual 的 External interrupt/event GPIO mapping 图
         //
@@ -66,7 +69,7 @@ fn main() -> ! {
             .SYSCFG
             .exticr1
             // 将 EXTI0 设置为监听 Port A
-            .write(|w| unsafe { w.exti0().bits(0) });
+            .modify(|_, w| unsafe { w.exti0().bits(0) });
 
         // 注：EXTI 模块较为复杂，可以对照 Reference manual 的 External interrupt/event controller block diagram 来看这里的说明
         //
@@ -82,10 +85,10 @@ fn main() -> ! {
         // EXTI16 的 PVD 输出、EXTI17 的 RTC Alarm 事件、EXTI18 的 USB OTG FS Wake 事件
         // EXTI21 的 RTC Tamper 和 TimeStamp 事件、EXTI22 的 RTC Wakeup 事件
         // 实际上，STM32F7 系列一共提供了 24 个 EXTI，除了上面提到的 15 个，还另有一些与那颗芯片上具有的额外功能对应的中断
-        device_peripheral.EXTI.rtsr.write(|w| w.tr0().enabled());
+        device_peripheral.EXTI.rtsr.modify(|_, w| w.tr0().enabled());
         // 在片上外设中，需要做的设置就只剩最后一步了，允许沿边检测电路把信号发到 Pending Register 上
         // imr 是 interrupt mask register 的缩写
-        device_peripheral.EXTI.imr.write(|w| w.mr0().unmasked());
+        device_peripheral.EXTI.imr.modify(|_, w| w.mr0().unmasked());
 
         // 见 Reference manual 的 Vector table for STM32F411xC/E 表
         //
@@ -122,17 +125,17 @@ fn main() -> ! {
         device_peripheral
             .RCC
             .ahb1enr
-            .write(|w| w.gpiocen().enabled());
+            .modify(|_, w| w.gpiocen().enabled());
 
         device_peripheral
             .GPIOC
             .moder
-            .write(|w| w.moder13().output());
+            .modify(|_, w| w.moder13().output());
         device_peripheral
             .GPIOC
             .otyper
-            .write(|w| w.ot13().push_pull());
-        device_peripheral.GPIOC.odr.write(|w| w.odr13().high());
+            .modify(|_, w| w.ot13().push_pull());
+        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().high());
     }
 
     loop {}
@@ -153,12 +156,12 @@ unsafe fn EXTI0() {
     let device_peripheral = pac::Peripherals::steal();
     // 清理 Pending bit
     // 这一步很重要，由于 Pending bit 不会自动清理，会导致我们一直陷在这个中断处理流程中（ISR - Interrupt Service Routine）
-    device_peripheral.EXTI.pr.write(|w| w.pr0().clear());
+    device_peripheral.EXTI.pr.modify(|_, w| w.pr0().clear());
 
     //切换 LED 的状态
     if device_peripheral.GPIOC.odr.read().odr13().bit() {
-        device_peripheral.GPIOC.odr.write(|w| w.odr13().low());
+        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().low());
     } else {
-        device_peripheral.GPIOC.odr.write(|w| w.odr13().high());
+        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().high());
     }
 }
