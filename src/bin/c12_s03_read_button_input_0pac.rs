@@ -30,19 +30,20 @@ fn main() -> ! {
             .ahb1enr
             .modify(|_, w| w.gpioaen().enabled());
 
-        // 将按钮所在的 PA0 的模式设置为输入
-        // 只有输入状态的 GPIO 才可以被设置为中断来源
-        device_peripheral
-            .GPIOA
-            .moder
-            .modify(|_, w| w.moder0().input());
-        // 并将 PA0 设置为下拉模式，这样就启用了 PA0 自带的弱下拉电阻
+        // 将 PA0 设置为下拉模式，这样就启用了 PA0 自带的弱下拉电阻
         // 防止 Pin 在外部悬空时，捕获干扰而导致输入寄存器的值随机变动
         // 注意，输入寄存器的值是每个时钟都刷新一次的，所以采样频率是和时钟频率关联的
         device_peripheral
             .GPIOA
             .pupdr
             .modify(|_, w| w.pupdr0().pull_down());
+
+        // 将按钮所在的 PA0 的模式设置为输入
+        // 只有输入状态的 GPIO 才可以被设置为中断来源
+        device_peripheral
+            .GPIOA
+            .moder
+            .modify(|_, w| w.moder0().input());
 
         // 接着，我们要配置外部中断控制器，让它捕获来自按钮的信息
         //
@@ -121,7 +122,7 @@ fn main() -> ! {
         // 其后还需要实际设置中断发生时，我们期望产生的效果，也就是创建（准确说是覆盖）特定的中断处理函数
         // 不过这得在另一个单独函数中配置了
 
-        // 下面的事情就比较简单了，开启 GPIOC 的时钟，设置 PC13 为推挽输出，并默认置高电平
+        // 下面的事情就比较简单了，开启 GPIOC 的时钟，将 PC13 设置为高电平，最后开启推挽输出
         device_peripheral
             .RCC
             .ahb1enr
@@ -131,11 +132,11 @@ fn main() -> ! {
             .GPIOC
             .moder
             .modify(|_, w| w.moder13().output());
+        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().high());
         device_peripheral
             .GPIOC
             .otyper
             .modify(|_, w| w.ot13().push_pull());
-        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().high());
     }
 
     loop {}
