@@ -42,6 +42,12 @@ use panic_rtt_target as _;
 
 use rtt_target::{rprintln, rtt_init_print};
 
+// 这个引入非必须，但由于本 project 的其它文件使用了 stm32f4xx_hal 这个库
+// 导致链接本文件时，需要这个库提供的一些文件，因此这里倒入一下
+// 正常情况下，本文件不需要使用 stm32f4xx_hal 这个库
+#[allow(unused_imports)]
+use stm32f4xx_hal;
+
 #[cortex_m_rt::entry]
 fn main() -> ! {
     rtt_init_print!();
