@@ -6,6 +6,11 @@
 //! 在这个案例中，我们尝试让 STM32F411RE 运行在 HCLK 能支持的最高频率 100 MHz 下
 //!
 //! 注意，为了演示原理，这里我们手动配置所有的寄存器以达到效果
+//!
+//! 另外，为了方便理解，这里的每个步骤都是完成一整个操作之后，再执行下一个操作
+//! 我们这里的操作遵循以下的步骤：
+//! 启用 HSE -> 等待 HSE 稳定 -> 配置 PLL -> 配置 PWR -> 启动 PLL -> 等待 PWR_VOS 稳定 -> 等待 PLL 稳定 -> 配置 FLASH -> 配置 APB1 分频 -> 切换系统时钟至 PLL -> 等待切换结束
+//! 这种处理方式便于理解，但可能执行效率并不算高，下一个文件 100_pll_1rearranged 会提供一个执行效率稍高一些的方法
 
 #![no_std]
 #![no_main]
@@ -17,7 +22,27 @@ use stm32f4xx_hal::pac;
 #[cortex_m_rt::entry]
 fn main() -> ! {
     rtt_init_print!();
+
+    // 统计以下 CPU 为了等待设备稳定，所花费的空转次数
+    #[allow(non_snake_case)]
+    let mut HSE_WaitCount: u32 = 0;
+    #[allow(non_snake_case)]
+    let mut VOS_WaitCount: u32 = 0;
+    #[allow(non_snake_case)]
+    let mut PLL_WaitCount: u32 = 0;
+    #[allow(non_snake_case)]
+    let mut SYSCLK_WaitCount: u32 = 0;
+    #[allow(non_snake_case, unused_assignments)]
+    let mut Total = 0;
+
     if let Some(dp) = pac::Peripherals::take() {
+        // 启用外部 8 MHz 晶振
+        dp.RCC.cr.modify(|_, w| w.hseon().on());
+        // 等待外部晶振频率稳定
+        while dp.RCC.cr.read().hserdy().is_not_ready() {
+            HSE_WaitCount += 1
+        }
+
         // 由于，我们希望系统时钟运行在 100 MHz
         // 因此我们需要借助锁相环调整来自 HSE 的频率；
         // 与系统时钟相关的 PLL 内部的频率如下
@@ -40,6 +65,27 @@ fn main() -> ! {
             w.pllp().div2();
             w
         });
+
+        // 依照 reference menual，在大于 84 MHz 时，应该将 PWR_VOS 设置为 Scale 1 mode
+        // （会额外增加能耗）
+        // 在 datasheet 的 block diagram 中，PWR 处于图标的右侧中上部，
+        // 名为 PWR interface，挂载在 APB1 总线上
+        dp.RCC.apb1enr.modify(|_, w| w.pwren().enabled());
+        // VOS: Voltage scaling Output Selection
+        dp.PWR.cr.modify(|_, w| unsafe { w.vos().bits(0b11) });
+        // 注意，VOS 只有在实际启动 PLL 后才会执行
+        // 因此 PWR_CRS_VOSRDY 需要等到 PLL 启动后才能侦测
+
+        // 启动锁相环
+        dp.RCC.cr.modify(|_, w| w.pllon().on());
+        // 等待 VOC 调整完成
+        while dp.PWR.csr.read().vosrdy().bit_is_clear() {
+            VOS_WaitCount += 1;
+        }
+        // 等待锁相环稳定
+        while dp.RCC.cr.read().pllrdy().is_not_ready() {
+            PLL_WaitCount += 1;
+        }
 
         // 依照 reference manual 的说明，
         // 在供电电压较低或系统时钟频率较高的情况下，CPU 访问 FLASH 均需要一定时间的等待
@@ -65,34 +111,17 @@ fn main() -> ! {
         // 此处将与 APB1 总线时钟的预分频设置为 2
         dp.RCC.cfgr.modify(|_, w| w.ppre1().div2());
 
-        // 依照 reference menual，在大于 84 MHz 时，应该将 PWR_VOS 设置为 Scale 1 mode
-        // （会额外增加能耗）
-        // 在 datasheet 的 block diagram 中，PWR 处于图标的右侧中上部，
-        // 名为 PWR interface，挂载在 APB1 总线上
-        dp.RCC.apb1enr.modify(|_, w| w.pwren().enabled());
-        // VOS: Voltage scaling Output Selection
-        dp.PWR.cr.modify(|_, w| unsafe { w.vos().bits(0b11) });
-        // 注意，VOS 只有在实际启动 PLL 后才会执行
-        // 因此 PWR_CRS_VOSRDY 需要等到 PLL 启动后才能侦测
-
-        // 启用外部 8 MHz 晶振
-        dp.RCC.cr.modify(|_, w| w.hseon().on());
-        // 等待外部晶振频率稳定
-        while dp.RCC.cr.read().hserdy().is_not_ready() {}
-
-        // 启动锁相环
-        dp.RCC.cr.modify(|_, w| w.pllon().on());
-        // 等待 VOC 调整完成
-        while dp.PWR.csr.read().vosrdy().bit_is_clear() {}
-        // 等待锁相环稳定
-        while dp.RCC.cr.read().pllrdy().is_not_ready() {}
-
         // 将 PLL 的输出设置为系统时钟
         dp.RCC.cfgr.modify(|_, w| w.sw().pll());
         // 等待系统时钟切换完成
-        while !dp.RCC.cfgr.read().sws().is_pll() {}
+        while !dp.RCC.cfgr.read().sws().is_pll() {
+            SYSCLK_WaitCount += 1;
+        }
 
         rprintln!("System Clock @ 100 MHz with HSE and PLL\r");
+
+        Total = HSE_WaitCount + VOS_WaitCount + PLL_WaitCount + SYSCLK_WaitCount; // 经过测试，这个方案 CPU 空转次数大概在 170 次左右
+        rprintln!("Wait Count:\r\nHSE_WaitCount: {}\r\nVOS_WaitCount: {}\r\nPLL_WaitCount: {}\r\nSYSCLK_WaitCount:{}\r\nTotal: {}\r\n", HSE_WaitCount, VOS_WaitCount, PLL_WaitCount, SYSCLK_WaitCount, Total);
     }
     loop {}
 }
