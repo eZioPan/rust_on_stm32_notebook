@@ -57,6 +57,8 @@
           "monitor echo \"Stop RTT\"",
           "monitor rtt stop",
           "monitor echo \"\\nwill flash after RestartSession\\n\"",
+          // 刷板子以前，让板子先停机
+          "monitor reset halt",
           // 刷写新文件到板子上
           "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
           // 让 gdb 重新读一下新的 elf 文件
@@ -74,7 +76,9 @@
           "monitor reset halt"
         ],
         // 由于 rest 不会触发重新编译，因此我们这里不要让 postRest 使用 postRestart 的命令
-        "postResetCommands": ["monitor echo \"Restart Finish\""]
+        "postResetCommands": [
+          "monitor echo \"Restart Finish\""
+        ]
       },
       "breakAfterReset": false,
       // 首次启动前，将 elf 文件刷板子上
@@ -83,6 +87,8 @@
         "monitor echo \"Stop RTT\"",
         "monitor rtt stop",
         "monitor echo \"\\nFlash\\n\"",
+        // 刷板子以前，让板子先停机
+        "monitor reset halt",
         // 刷写文件到板子上
         "monitor flash write_image erase target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         // 在刷写新的程序之后，RTT handle 的内存地址都会改变，
