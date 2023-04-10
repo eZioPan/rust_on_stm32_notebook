@@ -8,6 +8,52 @@
 .. **一定要先停机，在刷写**，执行命令 reset halt 可以停机
 .. **一定要先清除 Flash 对应的 Page，再刷写**，或者直接使用 `flash write_image erase XXXX.elf`，由 OpenOCD 依照 ELF 文件的情况，自动清除所需要的 Flash
 
+. 有时候，由于我们配置错误、或者编写的错误、或者 向量表不正确，会导致程序无法刷写，甚至是停机和重置都无法完成 +
+此时有一个方法可以试一试，那就是使用 OpenOCD 的 telnet 命令行（默认在 4444 端口）
+.. 通过 `telnet 127.0.0.1 4444` 连接上 OpenOCD
+.. 先在 telnet 中输入 `reset halt`，但不要回车执行
+.. 接着按住开发板上的 Reset 按钮
+.. 按回车键执行 `reset halt`，之后立刻松开 Reset 按钮
++
+此时，OpenOCD 大概率会出现 +
+`[stm32f4x.cpu] halted due to debug-request, current mode: Thread` +
+这就表示我们停机成功了 +
+然后我们就可以正常执行刷写流程，将正确的程序刷写到 Flash 中了
+
+. 在 VSCode 插件 Cortex-Debug 脱离 OpenOCD 的时候，一般会将 cortex 核心置于 halt 状态 +
+此时可在 OpenOCD 的 telnet 中使用 `resume` 命令，让 cortex 核心继续运行
+
+== 常见的 OpenOCD 指令
+
+help [<命令>]::
+查看简单的帮助
+
+stm32f4x.cpu curstate::
+查看 stm32f4x cortex 内核的当前的运行状态
+
+halt::
+让 cortex 核心立即在当前的执行状态下停机（暂停运行）
+
+resume::
+让 cortex 核心从当前的状态继续运行
+
+reset [run|halt|init]::
+重置 cortex 核心的运行状态，并依照参数将核心的运行模式设置为： +
+run: 直接运行程序 +
+halt: 重置之后立刻停机 +
+init: 重置之后立刻停机，但会执行 reset-init 脚本 +
+不给出参数时，等价于 reset run
+
+debug_level [0|1|2|3|4]::
+OpenOCD 返回的 debug 信息的详细程度 +
+0：仅显示 Error +
+1：显示 Error 和 Warning +
+2：显示 Error、Warning 和 Info +
+3：显示 Error、Warning、Info 和 Debug +
+4：显示 Error、Warning、Info、Debug 以及低层级 debug 信息 +
+不带参数时，显示当前的 debug_level +
+默认级别为 2
+
 == 常见问题
 
 Q00: 就学习 STM32F411RET6 最重要的文档是哪些
