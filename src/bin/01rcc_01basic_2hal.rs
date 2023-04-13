@@ -15,7 +15,7 @@ use rtt_target::rtt_init_print;
 use stm32f4xx_hal::{
     adc::{self, config::Scan},
     pac, // 其实这个 pac 就是 stm32f4 crate 的再导出
-    prelude::{_fugit_RateExtU32, _stm32f4xx_hal_rcc_RccExt},
+    prelude::*,
 };
 
 #[cortex_m_rt::entry]
