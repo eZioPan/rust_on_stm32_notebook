@@ -23,9 +23,7 @@
 use panic_rtt_target as _;
 
 use rtt_target::{rprintln, rtt_init_print};
-use stm32f4xx_hal as hal;
-
-use hal::pac;
+use stm32f4xx_hal::pac;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
