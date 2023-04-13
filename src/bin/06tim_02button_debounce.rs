@@ -46,10 +46,10 @@
 
 use core::cell::Cell;
 
-use cortex_m::{interrupt::Mutex, peripheral::NVIC};
+use cortex_m::interrupt::Mutex;
 use panic_rtt_target as _;
 use rtt_target::{rprint, rtt_init_print};
-use stm32f4xx_hal::pac::{self, interrupt};
+use stm32f4xx_hal::pac::{self, interrupt, NVIC};
 
 #[cortex_m_rt::entry]
 fn main() -> ! {

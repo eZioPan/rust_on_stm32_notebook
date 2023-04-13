@@ -11,14 +11,15 @@
 
 use core::cell::{Cell, RefCell};
 
-use cortex_m::{interrupt::Mutex, peripheral::NVIC};
+use cortex_m::interrupt::Mutex;
 use panic_rtt_target as _;
 
 use rtt_target::{rprintln, rtt_init_print};
 
 use stm32f4xx_hal::{
     gpio::{gpioa, gpioc, Edge, Input, Output, PinState},
-    interrupt, pac,
+    interrupt,
+    pac::{self, NVIC},
     prelude::*,
     syscfg::SysCfgExt,
 };
