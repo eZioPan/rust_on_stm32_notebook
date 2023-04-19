@@ -23,6 +23,33 @@
 . 在 VSCode 插件 Cortex-Debug 脱离 OpenOCD 的时候，一般会将 cortex 核心置于 halt 状态 +
 此时可在 OpenOCD 的 telnet 中使用 `resume` 命令，让 cortex 核心继续运行
 
+. 如果为了排查问题（比如检测 ELF 包含的 segments 的状态）要保留编译过程中输出的中间文件（比如 单个 .rs 源文件编译出来的 .o 文件） +
+我们可以使用以下执行进行编译
++
+[source, bash]
+----
+cargo rustc --bin <bin 类型源码名> -- emit=obj
+----
++
+让 rustc 在编译后保留 .o 文件，该文件会留存在 **target/<target-triple>/dep/** 目录下 +
+之后我们就可以通过 `readelf` 简单读取 ELF 文件的“各种”头部信息，或者通过 `arm-none-eabi-objdump` 命令详细解析 ELF 文件的内容，常见的参数搭配有
+
+** 读取 ELF 文件中，每个节头记录的数据
++
+[source, bash]
+----
+readelf --program-headers <ELF 文件>
+----
+
+** 将整个 ELF 文件的内容以 HEX 的格式、分节的方式 dump 下来，若遇到可执行的节，则反汇编其内容，在解析符号时，将 rustc 使用的“转义字符”“反转义回来”，并配上对应的源码
++
+[source, bash]
+----
+arm-none-eabi-objdump --full-content --disassemble --demangle=rust --source <ELF 文件> > <输出文件>
+----
++
+若希望仅展示某个节，则可以追加参数 `--section <节名>`，若不需非可执行节之外的节的内容，则可以去掉 `--full-content` 参数
+
 == 常见的 OpenOCD 指令
 
 help [<命令>]::
