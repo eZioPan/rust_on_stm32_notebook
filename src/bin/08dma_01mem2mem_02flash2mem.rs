@@ -107,7 +107,7 @@ fn main() -> ! {
         dma2_st0.cr.modify(|_, w| w.en().enabled());
 
         cortex_m::interrupt::free(|cs| {
-            G_DP.borrow(cs).replace(Some(dp));
+            G_DP.borrow(cs).borrow_mut().replace(dp);
 
             unsafe { NVIC::unmask(interrupt::DMA2_STREAM0) }
         });
