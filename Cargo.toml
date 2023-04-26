@@ -23,3 +23,5 @@ panic-rtt-target = { version = "*", features = ["cortex-m"] }
 
 # 一个实时的、中断驱动的、并发框架
 cortex-m-rtic = "*"
+
+itoa = "*"
