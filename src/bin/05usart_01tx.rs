@@ -13,6 +13,8 @@
 //! RTS：Request To Send 接收端提示发送端可以发送数据的端口
 //! CTS：Clear To Send 发送端用来接收来自接收端 RTS 信号的端口
 //!
+//! 【额外的】GND: 两个通信设备需要共地，以保证电平值的统一
+//!
 //! Note: Tx 和 Rx 其实来自摩尔斯码，分别为 - ..-... 和 .-. ..-... 表示发送和接收
 //!
 //! 从上面的说明大致可以猜到，一对 UART 设备的 4 对接口，刚好可以构成两对交叉连接
@@ -79,9 +81,11 @@ fn main() -> ! {
         // 这里有一个特殊的地方，为了防止 dp 还没有移动到全局变量前，TIM2 的中断就被触发了
         // 这里应该先确保 dp 的移出，在启动 TIM2 的计时器
         cortex_m::interrupt::free(|cs| {
+            // 在这里，由于 G_DP 内部保存的值需要修改，因此需要使用 .borrow_mut() 获取可变借用
             G_DP.borrow(cs).borrow_mut().replace(dp);
 
             // 在 dp 移动到全局静态量中后，我们再用全局静态量来启动 TIM2 的计数器
+            // 在 G_DP 注入完成之后，我们就不再需要修改 G_DP 这个变量了，因此这里的两次解引用都是不可变形式的
             let dp_ref = G_DP.borrow(cs).borrow();
             let dp = dp_ref.as_ref().unwrap();
             dp.TIM2.cr1.modify(|_, w| w.cen().enabled());
