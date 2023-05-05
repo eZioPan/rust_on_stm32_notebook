@@ -66,7 +66,8 @@ fn main() -> ! {
             w
         });
 
-        // 依照 reference menual，在大于 84 MHz 时，应该将 PWR_VOS 设置为 Scale 1 mode
+        // 依照 reference menual 中 Relation between CPU clock frequency and Flash memory read time 节的说明，
+        // 在大于 84 MHz 时，应该将 PWR 寄存器的 VOS 位设置为 0x11，也就是 Scale 1 mode
         // （会额外增加能耗）
         // 在 datasheet 的 block diagram 中，PWR 处于图标的右侧中上部，
         // 名为 PWR interface，挂载在 APB1 总线上
@@ -87,7 +88,7 @@ fn main() -> ! {
             PLL_WaitCount += 1;
         }
 
-        // 依照 reference manual 的说明，
+        // 依照 reference manual 中 Relation between CPU clock frequency and Flash memory read time 节的说明，
         // 在供电电压较低或系统时钟频率较高的情况下，CPU 访问 FLASH 均需要一定时间的等待
         //
         // 在供电电压在 2.7V ~ 3.6V 之间，且系统时钟运行在 90 ~ 100 MHz 的情况下
