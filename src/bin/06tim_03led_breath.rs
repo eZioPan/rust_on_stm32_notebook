@@ -139,8 +139,8 @@ fn tim2_pwm_init(dp: &pac::Peripherals) {
         w.oc1pe().enabled();
         // OC1M: Output Compare 1 Mode
         // 000 Frozen: CCR 与 CNT 的比较不会影响输出（OC1REF 的值）
-        // 001 Active Level on Match: 当 CNT 等于 CCR 时，OC1REF 置为高电平，其余时刻置于低电平
-        // 010 Inactive Level on Match: 当 CNT 等于 CCR 时，OC1REF 置为低电平，其余时刻置于高电平
+        // 001 Active Level on Match: OC1REF 初始置低电平，某时刻 CNT 等于 CCR 之后，OC1REF 就保持为高电平
+        // 010 Inactive Level on Match: OC1REF 初始置高电平，某时刻 CNT 等于 CCR 之后，OC1REF 就保持为低电平
         // 011 Toggle: 当 CNT 等于 CCR 时，OC1REF 的电平翻转
         // 100 Force Inactive:  OC1REF 强制置低
         // 101 Force Active: OC1REF 强制置高
