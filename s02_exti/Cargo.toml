@@ -1,0 +1,27 @@
+[package]
+name = "s02_exti"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+# Cortex-M 内核抽象
+cortex-m = "*"
+
+# Cortex-M 运行时组件
+cortex-m-rt = "*"
+
+# STM32F4xx 系列片上外设的抽象层
+# 特别指定了 STM32F411 作为具体的芯片，并启用了对 rtic 的支持（以使用 cortex-m-rtic crate）
+stm32f4xx-hal = { version = "*", features = ["stm32f411", "rtic"] }
+
+# 启用 RTT
+rtt-target = { version = "*", features = ["cortex-m"] }
+# 将 panic 信息通过 RTT 传递给主机
+panic-rtt-target = { version = "*", features = ["cortex-m"] }
+
+# 一个实时的、中断驱动的、并发框架
+cortex-m-rtic = "*"
