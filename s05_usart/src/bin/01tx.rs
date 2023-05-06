@@ -47,6 +47,8 @@
 
 //! 这里我们要实现一个效果，那就是每秒向 UART 口输出一个 hello 字符串，并打印总计输出的次数
 //! 需要启用 GPIO、USART1、TIM2，然后让 TIM2 每秒触发一个中断，在中断中我们通过 USART 输出一下我们想要的字符
+//!
+//! 电路连接方案：GPIO PA9 <-> DAPLink Rx
 
 #![no_std]
 #![no_main]

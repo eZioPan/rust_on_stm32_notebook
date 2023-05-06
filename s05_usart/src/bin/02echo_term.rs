@@ -1,6 +1,10 @@
 //! 简易 echo terminal
 //!
 //! 目标：实现一个串行终端，它能实时显示每个输入的字符，并在按下回车之后，再次显示当前行的内容
+//!
+//! 电路连接方案：
+//! GPIO PA9 <-> DAPLink Rx
+//! GPIO PA10 <-> DAPLink Tx
 
 #![no_std]
 #![no_main]
@@ -177,7 +181,6 @@ fn prepare_echo_term() {
     })
 }
 
-//
 #[interrupt]
 fn USART1() {
     cortex_m::interrupt::free(|cs| {
@@ -191,7 +194,7 @@ fn USART1() {
 
         let serial1 = &dp.USART1;
 
-        // 只要读取过 SR，当前的中断触发就会被关闭，不会产生多次触发
+        // 只要读取过 SR，当前的中断触发就会被清理，不会产生多次触发
         serial1.sr.read();
 
         let cur_char = serial1.dr.read().dr().bits() as u8;
