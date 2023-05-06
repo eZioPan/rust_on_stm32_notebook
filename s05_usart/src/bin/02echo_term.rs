@@ -21,9 +21,10 @@ static G_DP: Mutex<RefCell<Option<pac::Peripherals>>> = Mutex::new(RefCell::new(
 // 那么 rprintln!() 就会失效，不仅是中断中的 rprintln!() 会失效，整个程序中的 rprintln!() 都会失效
 // 如果用的是 Cell，那么列表的长度可以稍长一些，超过 116 才会失效
 // 感觉是 cortex_m::interrupt::Mutex 和 rtt_target create 之间的冲突
-const BUG_LENGTH: usize = 64;
-static G_LINE_BUF: Mutex<RefCell<[u8; 64]>> = Mutex::new(RefCell::new([0u8; BUG_LENGTH]));
-static G_LINE_BUF_INDEX: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
+const BUF_LENGTH: usize = 64;
+static G_LINE_BUF: Mutex<RefCell<[u8; BUF_LENGTH]>> = Mutex::new(RefCell::new([0u8; BUF_LENGTH]));
+// 这里，G_LINE_BUF_INDEX 里包裹的数据最好是 usize 类型的，毕竟是用来索引数组的
+static G_LINE_BUF_INDEX: Mutex<Cell<usize>> = Mutex::new(Cell::new(0));
 
 static G_LINE_COUNT: Mutex<Cell<u32>> = Mutex::new(Cell::new(1));
 
@@ -210,7 +211,7 @@ fn USART1() {
                 send_str_to_usart1(serial1, ": ");
 
                 // 打印行缓冲内容
-                send_bytes_to_usart1(serial1, &buf[0..(buf_index as usize)]);
+                send_bytes_to_usart1(serial1, &buf[0..buf_index]);
 
                 // 最后额外输出一个换行，并打印提示符
                 send_str_to_usart1(serial1, "\r\n>>> ");
@@ -228,11 +229,11 @@ fn USART1() {
                 send_byte_to_usart1(serial1, cur_char);
 
                 // 判定当前是否有足够大的空间容纳新的字符，若没有，则直接丢弃新来的字符
-                if buf_index == (BUG_LENGTH - 1) as u32 {
+                if buf_index == BUF_LENGTH - 1 {
                     return;
                 }
                 // 将字符保存到 buf 里
-                buf[buf_index as usize] = cur_char;
+                buf[buf_index] = cur_char;
                 // 并让 buf 的索引 +1
                 G_LINE_BUF_INDEX.borrow(cs).set(buf_index + 1);
             }
