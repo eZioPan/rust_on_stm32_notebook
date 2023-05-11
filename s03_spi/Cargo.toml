@@ -16,7 +16,13 @@ cortex-m-rt = "*"
 
 # STM32F4xx 系列片上外设的抽象层
 # 特别指定了 STM32F411 作为具体的芯片
-stm32f4xx-hal = { version = "*", features = ["stm32f411"] }
+#
+# NOTE: stm32f4xx-hal v0.16 版本添加了对 SPI Slave 的支持，但是 spi! 宏写错了，导致其并不能正确地运行
+# 已经在 https://github.com/stm32-rs/stm32f4xx-hal/pull/635 中修复
+# 等待下一次 release，目前先跟踪 master branch
+stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal/", features = [
+    "stm32f411",
+] }
 
 # 启用 RTT
 rtt-target = { version = "*", features = ["cortex-m"] }
