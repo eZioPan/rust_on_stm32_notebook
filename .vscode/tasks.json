@@ -2,15 +2,27 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "cargo build file",
+      "label": "cargo debug build file",
       "type": "cargo",
       "command": "build",
       "args": ["--bin", "${fileBasenameNoExtension}"],
-      "detail": "build current file",
+      "detail": "debug build current file",
       "problemMatcher": "$rustc",
       "group": {
         "kind": "build",
         "isDefault": true
+      }
+    },
+    {
+      "label": "cargo release build file",
+      "type": "cargo",
+      "command": "build",
+      "args": ["--release", "--bin", "${fileBasenameNoExtension}"],
+      "detail": "release build current file",
+      "problemMatcher": "$rustc",
+      "group": {
+        "kind": "build",
+        "isDefault": false
       }
     }
   ]
