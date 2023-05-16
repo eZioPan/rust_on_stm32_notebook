@@ -3,6 +3,10 @@
 //! ADC Analog to Digital Converter 是一种采样模拟电压，并转换为数字信号的设备
 //!
 //!
+//! 【重要】：虽然 STM32F411 的大部分引脚都是 FT（Five volt Tolerant）的，但在 analog 模式下，他们均不是 FT 的，
+//!           切勿将高于 3.3V 的电压直接引入 analog 模式下的 GPIO 引脚
+//!
+//!
 //! ADC channel：
 //! ADC 的采样对象，主要是 GPIO 输入的电压值，另外该包含一些内部模拟数据，
 //! 而且，一个 ADC 可以采样多个信号来源，因此必然有一个 ADC 中每个采样器编号与 GPIO 引脚编号对应的关系
@@ -119,8 +123,8 @@ fn setup_pll() {
 
         // 这里我们让 PLL 的输入时钟是 8 MHz 的 HSE，
         // 依照 PLLM 位 的说明，HSE 经过 PLLM 后最好得到 2 MHz，因此 PLLM 设置为 /4 模式
-        // 接着是 PLLN 位，经过 PLLN 输出的频率需要在 100 ~ 432 MHz 之间，这里我们取 240 MHz，因此 PLLN 的倍率为 120 MHz
-        // 最后我们要获得 60 MHz 的输出，因此我们要将 PLLP 设置为 /4 模式，将 120 MHz 降低到 60 MHz
+        // 接着是 PLLN 位，经过 PLLN 输出的频率需要在 100 ~ 432 MHz 之间，这里我们取 240 MHz，因此 PLLN 的倍率为 120
+        // 最后我们要获得 60 MHz 的输出，因此我们要将 PLLP 设置为 /4 模式，将 240 MHz 降低到 60 MHz
         dp.RCC.pllcfgr.modify(|_, w| {
             w.pllsrc().hse();
             unsafe {
