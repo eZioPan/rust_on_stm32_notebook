@@ -1,4 +1,4 @@
-//! 结合 TIM 的输入捕获和输出比较功能，控制 US-100 超声波测距模块测量距离
+//! 使用 TIM 的输出比较功能，控制 US-100 超声波测距模块测量距离
 
 //! 关于 US-100 超声波测距模块的说明：
 //!
@@ -8,7 +8,7 @@
 //! 在 类 HC-SR04 模式下，US-100 超声波模块需要在 Trig 引脚接收 10 us 以上的高电平以启动测量，并通过拉高 Echo 引脚电平的时长告知去波+来波总时长
 //!
 //! 因此，我们只需给 Trig 引脚输出一个高电平，并测量 Echo 引脚每次被拉高电平的时间，就可以知道声波来回的总时长，之后乘以声波的速度，并除以 2，就可以知道模块距离待测物体的距离了
-//! 注：US-100 的工作模式的切换，是通过其背部的跳线帽确定的，若跳线帽连接了两个针脚，US-100 处于 UART 模式，否则处于 类 HC-SR04 模式
+//! 注：US-100 的工作模式的切换，是**芯片上电时**通过其背部的跳线帽确定的，若跳线帽连接了两个针脚，US-100 处于 UART 模式，否则处于 类 HC-SR04 模式
 
 //! 拉高 Trig 引脚，我们可以将 Trig 引脚接在 3.3V 电源端实现
 //! 而测量 Echo 拉高电平的时间，则可以通过 TIM 的 输入捕获（IC: Input Capture）功能实现
@@ -134,8 +134,8 @@ fn setup_tim3(dp: &Peripherals) {
 
     // 【重要】如果要配置 ARR，一定要在 ARPE 关闭的情况下配置，否则第一个循环能等死人
     measurer.cr1.modify(|_, w| w.arpe().disabled());
-    // 我们记录的值不应该超过 27158，这里我们扩展到 30000，如果还溢出了就算是检测失败了
-    measurer.arr.write(|w| w.arr().bits(30000 - 1));
+    // 我们记录的值不应该超过 27_158，这里我们扩展到 30_000，如果还溢出了就算是检测失败了
+    measurer.arr.write(|w| w.arr().bits(30_000 - 1));
 
     measurer.cnt.write(|w| w.cnt().bits(0));
 
@@ -168,8 +168,8 @@ fn setup_tim3(dp: &Peripherals) {
             // 设置 CC1 为输入模式，且输入源为 TI1
             // 这里的 TI 实际上为 Timer Input 的缩写
             w.cc1s().ti1();
-            // 设置输入滤波模式为使用 TIM 时钟作为滤波时钟
-            // 且连续采样到 8 个有效的电平才算触发成功
+
+            // 连续采样到 8 个有效的电平才算触发成功
             // 注意：只要 CC1 的输入滤波模式和 CC2 的输入滤波模式一致
             //       就不会额外添加采样到的时长的偏移
             //
@@ -244,7 +244,7 @@ fn setup_tim3(dp: &Peripherals) {
             w
         });
 
-        // // 让 CC2 捕获下降沿
+        // 让 CC2 捕获下降沿
         // 关于输入捕获模式的 CCxP 和 CCxNP 的含义，参见上面
         measurer.ccer.modify(|_, w| {
             w.cc2np().clear_bit();
@@ -298,21 +298,18 @@ fn TIM3() {
 
             measurer.sr.modify(|_, w| w.uif().clear());
 
-            if measurer_stat.cc1if().bit_is_set() {
-                measurer.sr.modify(|_, w| w.cc1if().clear_bit());
-
-                rprintln!("{}: Timer Overflow", count);
-
-                G_CNT.borrow(cs).set(count + 1);
+            // 自然空转，我们直接跳出处理函数即可
+            if measurer_stat.cc2if().bit_is_clear() {
+                return;
             }
+
+            measurer.sr.modify(|_, w| w.cc1if().clear_bit());
+
+            rprintln!("{}: Timer Overflow", count);
         } else if measurer_stat.cc2if().bit_is_set() {
             // 若 CC2IF 被设置，就计算一下距离，并顺道重置一下计数器里的值
 
-            measurer.sr.modify(|_, w| {
-                w.cc1if().clear();
-                w.cc2if().clear();
-                w
-            });
+            measurer.sr.modify(|_, w| w.cc2if().clear());
 
             let end = measurer.ccr2().read().ccr().bits();
 
@@ -331,8 +328,8 @@ fn TIM3() {
             }
 
             measurer.cnt.write(|w| w.cnt().bits(0));
-
-            G_CNT.borrow(cs).set(count + 1);
         }
+
+        G_CNT.borrow(cs).set(count + 1);
     });
 }
