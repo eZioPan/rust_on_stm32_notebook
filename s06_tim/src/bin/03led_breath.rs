@@ -104,14 +104,15 @@ fn tim2_pwm_init(dp: &pac::Peripherals) {
     // 因此还是给当前需要设置的定时器一个别名，省的写错了
     let pwm_timer = &dp.TIM2;
 
+    // 推荐 PWM 所在的 TIM 的 ARR 的值应该和 输出比较寄存器 能达到的最大值相同
+    pwm_timer.arr.write(|w| w.bits(MAX_ARR_VALUE as u32));
+
     pwm_timer.cr1.modify(|_, w| {
         w.arpe().enabled();
         w.dir().down();
         w
     });
 
-    // 推荐 PWM 所在的 TIM 的 ARR 的值应该和 输出比较寄存器 能达到的最大值相同
-    pwm_timer.arr.write(|w| w.bits(MAX_ARR_VALUE as u32));
     // 由于 PWM 的循环周期是由 f_TIMCLK/[(PSC+1)*(ARR+1)] 确定的
     // 因此这个乘积不应该太大，防止闪动
     pwm_timer.psc.write(|w| w.psc().bits(9));
@@ -135,8 +136,7 @@ fn tim2_pwm_init(dp: &pac::Peripherals) {
     ccmr1_output.modify(|_, w| {
         // 确实让 CC1S 位处于 Output 模式
         w.cc1s().output();
-        // 启用比较寄存器的预载
-        w.oc1pe().enabled();
+
         // OC1M: Output Compare 1 Mode
         // 000 Frozen: CCR 与 CNT 的比较不会影响输出（OC1REF 的值）
         // 001 Active Level on Match: OC1REF 初始置低电平，某时刻 CNT 等于 CCR 之后，OC1REF 就保持为高电平
@@ -163,6 +163,10 @@ fn tim2_pwm_init(dp: &pac::Peripherals) {
     // 然后我们初始化一下 CCR 的值
     let ccr1 = pwm_timer.ccr1();
     ccr1.write(|w| w.ccr().bits(MAX_ARR_VALUE as u32));
+
+    // 启用比较寄存器的预载
+    // 注意，如果要启动 CC 的预载，则必须在配置 CCR 之后再启动
+    ccmr1_output.modify(|_, w| w.oc1pe().enabled());
 
     // 然后我们需要通过 CC1E 启动 CC1R
     // CCER: Capture / Compare Enable Register
