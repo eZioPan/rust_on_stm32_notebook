@@ -19,7 +19,7 @@
       // 因此此处必须为 attach
       "request": "attach",
       // 每次启动 debug 或重启 debug 时，都需要编译源文件
-      "preLaunchTask": "cargo build file",
+      "preLaunchTask": "cargo debug build file",
       // Rust 默认会生成 elf 文件的位置
       // 该文件同时用于写入 stm32f411 以及 gdb 会读取这个文件中存储的符号信息
       "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
