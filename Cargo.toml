@@ -8,6 +8,7 @@ members = [
     "s07_rtc",
     "s08_dma",
     "s09_adc",
+    "s10_systick",
 ]
 
 [workspace.package]
