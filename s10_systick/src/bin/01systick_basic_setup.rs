@@ -65,5 +65,5 @@ fn set_bit(value: u32, offset: u8) -> u32 {
 
 #[allow(dead_code)]
 fn clear_bit(value: u32, offset: u8) -> u32 {
-    value & !(0 << offset)
+    value & !(1 << offset)
 }
