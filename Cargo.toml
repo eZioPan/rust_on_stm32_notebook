@@ -3,6 +3,7 @@ members = [
     "s01_rcc",
     "s02_exti",
     "s03_spi",
+    "s04_i2c",
     "s05_usart",
     "s06_tim",
     "s07_rtc",
