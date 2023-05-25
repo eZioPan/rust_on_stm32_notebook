@@ -49,7 +49,7 @@ fn main() -> ! {
         dp.SPI2.cr1.modify(|_, w| {
             // 设置 SPI 为主机模式
             // 主机可以主动发起一个会话
-            // MSTR: MaSTER selection
+            // MSTR: MaSTeR selection
             w.mstr().master();
             // 单次发送和接收 16 bit 的数据
             // 注意在 STM32F411RE 上，SPI 的收缓存与发缓存使用同一个寄存器
@@ -145,7 +145,7 @@ fn SPI2() {
         // 接收代码
         if dp.SPI2.sr.read().rxne().is_not_empty() {
             // 打印接收的数据
-            rprintln!("Recieved:  {:X}\r", dp.SPI2.dr.read().dr().bits());
+            rprintln!("Received:  {:X}\r", dp.SPI2.dr.read().dr().bits());
             // 等待 SPI2 停工
             while dp.SPI2.sr.read().bsy().is_busy() {}
             // 关闭 SPI2 时钟
