@@ -1,5 +1,5 @@
 [package]
-name = "s11_lcd1602"
+name = "s11_lcd1602_pac"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true
