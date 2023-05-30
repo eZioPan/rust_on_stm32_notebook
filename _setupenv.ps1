@@ -11,8 +11,7 @@ Set-StrictMode -Version Latest
 $common_cmd_string = {
     $MSYS_DIR = ${Env:msys_dir}
     chcp 65001 | Out-Null
-    $tools_top_dir = "${MSYS_DIR}\ucrt64"
-    Set-Item -Path Env:PATH -Value "${tools_top_dir}\bin;${MSYS_DIR}\usr\bin;${Env:PATH}"
+    Set-Item -Path Env:PATH -Value "${MSYS_DIR}\ucrt64\bin;${MSYS_DIR}\usr\bin;${Env:PATH}"
     Set-Item -Path Env:RUSTUP_TOOLCHAIN -Value "stable-x86_64-pc-windows-gnu"
 }.ToString()
 
