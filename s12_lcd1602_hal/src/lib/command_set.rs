@@ -25,38 +25,44 @@ pub enum CommandSet {
     ReadDataFromRAM,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum MoveDirection {
     Left,
+    #[default]
     Right,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum ShiftType {
     Cursor,
+    #[default]
     Screen,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum State {
     Off,
+    #[default]
     On,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum DataWidth {
+    #[default]
     Bit4,
     Bit8,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum Line {
     Line1,
+    #[default]
     Line2,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum Font {
+    #[default]
     Font5x8,
     Font5x11,
 }

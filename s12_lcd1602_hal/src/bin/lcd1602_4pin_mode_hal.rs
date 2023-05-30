@@ -28,7 +28,7 @@ use stm32f4xx_hal::{pac, prelude::*};
 
 use lcd1602::{
     command_set::{CommandSet, Font, Line, MoveDirection, ShiftType, State},
-    lcd::LCD,
+    lcd_builder::LCDBuilder,
     lcd_pins::LCDPins,
 };
 
@@ -81,16 +81,16 @@ fn main() -> ! {
 
     let lcd_pins = LCDPins::new(rs_pin, rw_pin, en_pin, db4_pin, db5_pin, db6_pin, db7_pin);
 
-    let mut lcd = LCD::new(lcd_pins, delayer);
+    let lcd_builder = LCDBuilder::new(lcd_pins, delayer)
+        .set_blink(State::On)
+        .set_cursor(State::On)
+        .set_direction(MoveDirection::Right)
+        .set_display(State::On)
+        .set_font(Font::Font5x8)
+        .set_line(Line::Line2)
+        .set_shift(ShiftType::Cursor);
 
-    lcd.init_lcd(
-        Line::Line2,
-        Font::Font5x8,
-        State::On,
-        State::On,
-        MoveDirection::Right,
-        ShiftType::Cursor,
-    );
+    let mut lcd = lcd_builder.build_and_init();
 
     lcd.wait_and_send(CommandSet::SetDDRAM(0b000_0000), 10);
 
