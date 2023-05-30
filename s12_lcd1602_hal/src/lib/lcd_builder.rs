@@ -59,6 +59,9 @@ impl LCDBuilder {
     }
 
     pub fn set_line(mut self, line: Line) -> Self {
+        if (self.get_font() == Font::Font5x11) && (line == Line::Line2) {
+            panic!("font is 5x11, line cannot be 2");
+        }
         self.line = line;
         self
     }
@@ -68,6 +71,9 @@ impl LCDBuilder {
     }
 
     pub fn set_font(mut self, font: Font) -> Self {
+        if (self.get_line() == Line::Line2) && (font == Font::Font5x11) {
+            panic!("there is 2 line, font cannot be 5x11");
+        }
         self.font = font;
         self
     }

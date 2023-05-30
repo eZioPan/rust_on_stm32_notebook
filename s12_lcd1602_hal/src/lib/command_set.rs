@@ -53,14 +53,14 @@ pub enum DataWidth {
     Bit8,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub enum Line {
     Line1,
     #[default]
     Line2,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub enum Font {
     #[default]
     Font5x8,
