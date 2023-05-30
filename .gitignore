@@ -1,5 +1,6 @@
 /target
 /_setupenv*
+!/_setupenv.ps1
 /vendor
 /Cargo.lock
 /.vscode/.cortex-debug.registers.state.json
