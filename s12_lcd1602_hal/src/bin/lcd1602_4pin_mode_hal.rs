@@ -27,9 +27,12 @@ use rtt_target::rtt_init_print;
 use stm32f4xx_hal::{pac, prelude::*};
 
 use lcd1602::{
-    command_set::{CommandSet, Font, Line, MoveDirection, ShiftType, State},
+    command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     lcd_builder::LCDBuilder,
+    lcd_builder_traits::LCDBuilderAPI,
     lcd_pins::LCDPins,
+    lcd_pins_traits::LCDPinsTopLevelAPI,
+    lcd_traits::LCDTopLevelAPI,
 };
 
 #[cortex_m_rt::entry]
@@ -81,30 +84,46 @@ fn main() -> ! {
 
     let lcd_pins = LCDPins::new(rs_pin, rw_pin, en_pin, db4_pin, db5_pin, db6_pin, db7_pin);
 
-    let lcd_builder = LCDBuilder::new(lcd_pins, delayer)
+    let mut lcd_builder = LCDBuilder::new(lcd_pins, delayer)
         .set_blink(State::On)
         .set_cursor(State::On)
         .set_direction(MoveDirection::Right)
         .set_display(State::On)
         .set_font(Font::Font5x8)
-        .set_line(Line::Line2)
-        .set_shift(ShiftType::Cursor);
+        .set_line(LineMode::TwoLine)
+        .set_shift(ShiftType::Cursor)
+        .set_cursor_pos((1, 0)) // 这里我们故意向右偏移了一个字符，测试偏移功能是否正常
+        .set_wait_interval_us(10);
+
+    lcd_builder = lcd_builder;
 
     let mut lcd = lcd_builder.build_and_init();
 
-    lcd.wait_and_send(CommandSet::SetDDRAM(0b000_0000), 10);
-
-    for data in "hello, world!".as_bytes() {
+    for &character in "hello, world!".as_bytes() {
         lcd.delay_ms(250u32);
-        lcd.wait_and_send(CommandSet::WriteDataToRAM(*data), 10);
+        lcd.write_to_cur(character);
     }
 
     lcd.delay_ms(250u32);
-    lcd.wait_and_send(CommandSet::SetDDRAM(0x40), 10);
+    // 这里故意设置到第一行的末尾，测试换行功能是否正常
+    lcd.set_cursor_pos((39, 0));
 
-    for data in "hello, LCD1602!".as_bytes() {
+    lcd.set_blink(State::Off);
+
+    for &character in "hello, LCD1602!".as_bytes() {
         lcd.delay_ms(250u32);
-        lcd.wait_and_send(CommandSet::WriteDataToRAM(*data), 10);
+        lcd.write_to_cur(character);
+    }
+
+    lcd.set_cursor(State::Off);
+
+    lcd.delay_ms(1_000);
+
+    for _ in 0..3 {
+        lcd.set_display(State::Off);
+        lcd.delay_ms(1_000);
+        lcd.set_display(State::On);
+        lcd.delay_ms(1_000);
     }
 
     loop {}

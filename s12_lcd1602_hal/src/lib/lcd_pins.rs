@@ -1,16 +1,19 @@
 use stm32f4xx_hal::gpio::{ErasedPin, OpenDrain, Output};
 
-use super::full_command::{Bits, FullCommand, ReadWrite, RegisterSelection};
+use super::{
+    full_command::{Bits, FullCommand, ReadWrite, RegisterSelection},
+    lcd_pins_traits::{LCDPinsCrateLevelAPI, LCDPinsInternalAPI, LCDPinsTopLevelAPI},
+};
 
 pub struct LCDPins {
-    rs_pin: ErasedPin<Output>,
-    rw_pin: ErasedPin<Output>,
-    en_pin: ErasedPin<Output>,
-    db_pins: [ErasedPin<Output<OpenDrain>>; 4],
+    pub(crate) rs_pin: ErasedPin<Output>,
+    pub(crate) rw_pin: ErasedPin<Output>,
+    pub(crate) en_pin: ErasedPin<Output>,
+    pub(crate) db_pins: [ErasedPin<Output<OpenDrain>>; 4],
 }
 
-impl LCDPins {
-    pub fn new<PullPushPin, OpenDrainPin>(
+impl LCDPinsTopLevelAPI for LCDPins {
+    fn new<PullPushPin, OpenDrainPin>(
         rs: PullPushPin,
         rw: PullPushPin,
         en: PullPushPin,
@@ -30,8 +33,10 @@ impl LCDPins {
             db_pins: [db4.into(), db5.into(), db6.into(), db7.into()],
         }
     }
+}
 
-    pub(crate) fn send<IFC: Into<FullCommand>>(&mut self, command: IFC) -> Option<u8> {
+impl LCDPinsCrateLevelAPI for LCDPins {
+    fn send(&mut self, command: impl Into<FullCommand>) -> Option<u8> {
         self.en_pin.set_low();
 
         let command = command.into();
@@ -51,7 +56,7 @@ impl LCDPins {
                 let bits = command.data.expect("Write command but no data provide");
                 match bits {
                     Bits::Bit4(raw_bits) => {
-                        assert!(raw_bits <= 0b1111, "data is greater than 4 bits");
+                        assert!(raw_bits < 2u8.pow(4), "data is greater than 4 bits");
                         self.push_4_bits(raw_bits);
                         self.en_pin.set_high();
                         self.en_pin.set_low();
@@ -78,7 +83,9 @@ impl LCDPins {
             }
         }
     }
+}
 
+impl LCDPinsInternalAPI for LCDPins {
     fn push_4_bits(&mut self, raw_bits: u8) {
         for (index, pin) in self.db_pins.iter_mut().enumerate() {
             if raw_bits.checked_shr(index as u32).unwrap() & 1 == 1 {

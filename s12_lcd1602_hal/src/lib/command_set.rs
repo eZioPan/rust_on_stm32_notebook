@@ -17,7 +17,7 @@ pub enum CommandSet {
     // 这个 HalfFunctionSet 比较特殊，是在初始化 LCD1602 到 4 bit 模式所特有的“半条指令”
     // 而且 ST7066U 中并没有给这半条指令取新的名字，这里是我为了规整自行确定的名称
     HalfFunctionSet,
-    FunctionSet(DataWidth, Line, Font),
+    FunctionSet(DataWidth, LineMode, Font),
     SetCGRAM(u8),
     SetDDRAM(u8),
     ReadBusyFlagAndAddress,
@@ -25,7 +25,7 @@ pub enum CommandSet {
     ReadDataFromRAM,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, PartialEq, Default)]
 pub enum MoveDirection {
     Left,
     #[default]
@@ -54,10 +54,10 @@ pub enum DataWidth {
 }
 
 #[derive(Clone, Copy, Default, PartialEq)]
-pub enum Line {
-    Line1,
+pub enum LineMode {
+    OneLine,
     #[default]
-    Line2,
+    TwoLine,
 }
 
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -170,8 +170,8 @@ impl From<CommandSet> for FullCommand {
                 }
 
                 match line {
-                    Line::Line1 => clear_bit(&mut raw_bits, 3),
-                    Line::Line2 => set_bit(&mut raw_bits, 3),
+                    LineMode::OneLine => clear_bit(&mut raw_bits, 3),
+                    LineMode::TwoLine => set_bit(&mut raw_bits, 3),
                 }
 
                 match font {
@@ -189,9 +189,7 @@ impl From<CommandSet> for FullCommand {
             CommandSet::SetCGRAM(addr) => {
                 let mut raw_bits = 0b0100_0000;
 
-                if addr > 0b0011_1111 {
-                    panic!("CGRAM address out of range")
-                }
+                assert!(addr < 2u8.pow(6), "CGRAM address out of range");
 
                 raw_bits += addr;
 
@@ -205,9 +203,7 @@ impl From<CommandSet> for FullCommand {
             CommandSet::SetDDRAM(addr) => {
                 let mut raw_bits = 0b1000_0000;
 
-                if addr > 0b0111_1111 {
-                    panic!("DDRAM address out of range")
-                }
+                assert!(addr < 2u8.pow(7), "DDRAM address out of range");
 
                 raw_bits += addr;
 
