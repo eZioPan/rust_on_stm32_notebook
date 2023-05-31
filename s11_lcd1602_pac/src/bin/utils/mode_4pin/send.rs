@@ -10,9 +10,7 @@ pub fn send_8bit(dp: &pac::Peripherals, rs: u8, rw: u8, data: u8) {
 }
 
 pub fn send_4bit(dp: &pac::Peripherals, rs: u8, rw: u8, data: u8) {
-    if data > 0b1111 {
-        panic!("Data overflow, 4 bit only");
-    }
+    assert!(data < 2u8.pow(4), "Data overflow, 4 bit only");
 
     let ctrl = &dp.GPIOA;
     let dbus = &dp.GPIOB;
@@ -87,13 +85,9 @@ pub fn read_busy_flag(dp: &pac::Peripherals) -> u8 {
     state_high.checked_shl(4).unwrap() as u8 + state_low
 }
 
-pub fn wait_for_idle(
-    dp: &pac::Peripherals,
-    cp: &pac::CorePeripherals,
-    poll_interval_micro_sec: u32,
-) {
+pub fn wait_for_idle(dp: &pac::Peripherals, cp: &pac::CorePeripherals, poll_interval_ms: u32) {
     while read_busy_flag(dp).checked_shr(7).unwrap() & 1 == 1 {
-        delay(&cp, poll_interval_micro_sec);
+        delay(&cp, poll_interval_ms);
     }
 }
 
@@ -103,9 +97,9 @@ pub fn wait_and_send_8bit(
     rs: u8,
     rw: u8,
     data: u8,
-    poll_interval_micro_sec: u32,
+    poll_interval_ms: u32,
 ) {
-    wait_for_idle(dp, cp, poll_interval_micro_sec);
+    wait_for_idle(dp, cp, poll_interval_ms);
     send_8bit(dp, rs, rw, data);
 }
 
@@ -115,8 +109,8 @@ pub fn wait_and_send_4bit(
     rs: u8,
     rw: u8,
     data: u8,
-    poll_interval_micro_sec: u32,
+    poll_interval_ms: u32,
 ) {
-    wait_for_idle(dp, cp, poll_interval_micro_sec);
+    wait_for_idle(dp, cp, poll_interval_ms);
     send_4bit(dp, rs, rw, data);
 }

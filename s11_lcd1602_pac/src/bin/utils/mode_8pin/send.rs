@@ -85,13 +85,9 @@ pub fn read_busy_flag(dp: &pac::Peripherals) -> u8 {
     state
 }
 
-pub fn wait_for_idle(
-    dp: &pac::Peripherals,
-    cp: &pac::CorePeripherals,
-    poll_interval_micro_sec: u32,
-) {
+pub fn wait_for_idle(dp: &pac::Peripherals, cp: &pac::CorePeripherals, poll_interval_ms: u32) {
     while read_busy_flag(dp).checked_shr(7).unwrap() & 1 == 1 {
-        delay(&cp, poll_interval_micro_sec);
+        delay(&cp, poll_interval_ms);
     }
 }
 
@@ -101,8 +97,8 @@ pub fn wait_and_send(
     rs: u8,
     rw: u8,
     data: u8,
-    poll_interval_micro_sec: u32,
+    poll_interval_ms: u32,
 ) {
-    wait_for_idle(dp, cp, poll_interval_micro_sec);
+    wait_for_idle(dp, cp, poll_interval_ms);
     send(dp, rs, rw, data);
 }
