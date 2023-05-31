@@ -3,6 +3,15 @@ use super::{
     full_command::FullCommand,
 };
 
+pub trait LCDExt {
+    fn write_char(&mut self, char: char);
+    fn write_str(&mut self, str: &str);
+    fn typewriter_write(&mut self, str: &str, extra_delay_us: u32);
+    fn toggle_display(&mut self);
+
+    fn full_display_blink(&mut self, count: u32, change_interval_us: u32);
+}
+
 pub trait LCDTopLevelAPI {
     fn init_lcd(&mut self);
     fn write_to_cur(&mut self, character: impl Into<u8>);

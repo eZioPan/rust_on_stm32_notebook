@@ -32,7 +32,7 @@ use lcd1602::{
     lcd_builder_traits::LCDBuilderAPI,
     lcd_pins::LCDPins,
     lcd_pins_traits::LCDPinsTopLevelAPI,
-    lcd_traits::LCDTopLevelAPI,
+    lcd_traits::{LCDExt, LCDTopLevelAPI},
 };
 
 #[cortex_m_rt::entry]
@@ -99,10 +99,7 @@ fn main() -> ! {
 
     let mut lcd = lcd_builder.build_and_init();
 
-    for &character in "hello, world!".as_bytes() {
-        lcd.delay_ms(250u32);
-        lcd.write_to_cur(character);
-    }
+    lcd.typewriter_write("hello, world! ~", 250_000); // 这里故意追加了一个波浪线，应该被映射为全亮方块
 
     lcd.delay_ms(250u32);
     // 这里故意设置到第一行的末尾，测试换行功能是否正常
@@ -110,21 +107,11 @@ fn main() -> ! {
 
     lcd.set_blink(State::Off);
 
-    for &character in "hello, LCD1602!".as_bytes() {
-        lcd.delay_ms(250u32);
-        lcd.write_to_cur(character);
-    }
+    lcd.typewriter_write("hello, LCD1602!", 250_000);
 
     lcd.set_cursor(State::Off);
 
-    lcd.delay_ms(1_000);
-
-    for _ in 0..3 {
-        lcd.set_display(State::Off);
-        lcd.delay_ms(1_000);
-        lcd.set_display(State::On);
-        lcd.delay_ms(1_000);
-    }
+    lcd.full_display_blink(3, 500_000);
 
     loop {}
 }
