@@ -18,7 +18,6 @@ pub struct Builder {
     cursor_blink: State,
     dir: MoveDirection,
     shift_type: ShiftType,
-    cursor_pos: (u8, u8),
     wait_interval_us: u32,
 }
 
@@ -41,8 +40,6 @@ pub trait BuilderAPI {
     fn get_direction(&self) -> MoveDirection;
     fn set_shift(self, shift: ShiftType) -> Self;
     fn get_shift(&self) -> ShiftType;
-    fn set_cursor_pos(self, pos: (u8, u8)) -> Self;
-    fn get_cursor_pos(&self) -> (u8, u8);
     fn set_wait_interval_us(self, interval: u32) -> Self;
     fn get_wait_interval_us(&self) -> u32;
 }

@@ -1,7 +1,6 @@
 #[derive(Clone, Copy)]
 pub(super) enum CommandSet {
     ClearDisplay,
-    #[allow(dead_code)]
     ReturnHome,
     EntryModeSet(MoveDirection, ShiftType),
     DisplayOnOff {
@@ -15,7 +14,6 @@ pub(super) enum CommandSet {
     // 而且 ST7066U 中并没有给这半条指令取新的名字，这里是我为了规整自行确定的名称
     HalfFunctionSet,
     FunctionSet(DataWidth, LineMode, Font),
-    #[allow(dead_code)]
     SetCGRAM(u8),
     SetDDRAM(u8),
     ReadBusyFlagAndAddress,

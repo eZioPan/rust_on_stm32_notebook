@@ -1,3 +1,5 @@
+use crate::lcd::RAMType;
+
 use super::{command_set::State, Ext, LCD, LCDAPI};
 
 impl Ext for LCD {
@@ -18,9 +20,9 @@ impl Ext for LCD {
     }
 
     fn toggle_display(&mut self) {
-        match self.get_display() {
-            State::Off => self.set_display(State::On),
-            State::On => self.set_display(State::Off),
+        match self.get_display_state() {
+            State::Off => self.set_display_state(State::On),
+            State::On => self.set_display_state(State::Off),
         }
     }
 
@@ -40,6 +42,11 @@ impl Ext for LCD {
     /// 这里的字符仅覆盖了如下范围：
     /// ASCII 0x20 到 0x7D
     fn write_char(&mut self, char: char) {
+        assert!(
+            self.get_ram_type() == RAMType::DDRAM,
+            "Current in CGRAM, use .set_cursor_pos() to change to DDRAM"
+        );
+
         let out_byte = match char.is_ascii() {
             true => {
                 let out_byte = char as u8;
@@ -52,6 +59,6 @@ impl Ext for LCD {
             false => 0xFF,
         };
 
-        self.write_to_cur(out_byte);
+        self.write_u8_to_cur(out_byte);
     }
 }

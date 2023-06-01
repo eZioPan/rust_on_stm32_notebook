@@ -3,7 +3,7 @@ use stm32f4xx_hal::timer::SysDelay;
 use crate::lcd::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::Pins,
-    LCD, LCDAPI,
+    RAMType, LCD, LCDAPI,
 };
 
 use super::{Builder, BuilderAPI};
@@ -20,8 +20,9 @@ impl BuilderAPI for Builder {
             cursor_blink: self.get_blink(),
             direction: self.get_direction(),
             shift_type: self.get_shift(),
-            cursor_pos: self.get_cursor_pos(),
+            cursor_pos: (0, 0), // 锁定为初始位置
             wait_interval_us: self.get_wait_interval_us(),
+            ram_type: RAMType::DDRAM, // 锁定为进入 DDRAM
         };
         lcd.init_lcd();
         lcd
@@ -38,7 +39,6 @@ impl BuilderAPI for Builder {
             cursor_blink: Default::default(),
             dir: Default::default(),
             shift_type: Default::default(),
-            cursor_pos: (0, 0),
             wait_interval_us: 10,
         }
     }
@@ -120,26 +120,6 @@ impl BuilderAPI for Builder {
 
     fn get_shift(&self) -> ShiftType {
         self.shift_type
-    }
-
-    fn set_cursor_pos(mut self, pos: (u8, u8)) -> Self {
-        match self.line {
-            LineMode::OneLine => {
-                assert!(pos.0 < 80, "x offset too big");
-                assert!(pos.1 < 1, "should set y at 0 on ");
-            }
-            LineMode::TwoLine => {
-                assert!(pos.0 < 40, "x offset too big");
-                assert!(pos.1 < 2, "y offset too big");
-            }
-        }
-
-        self.cursor_pos = pos;
-        self
-    }
-
-    fn get_cursor_pos(&self) -> (u8, u8) {
-        self.cursor_pos
     }
 
     fn set_wait_interval_us(mut self, interval: u32) -> Self {

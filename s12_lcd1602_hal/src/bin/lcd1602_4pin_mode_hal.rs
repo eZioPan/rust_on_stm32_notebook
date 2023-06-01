@@ -103,11 +103,11 @@ fn main() -> ! {
     // 这里故意设置到第一行的末尾，测试换行功能是否正常
     lcd.set_cursor_pos((39, 0));
 
-    lcd.set_blink(State::Off);
+    lcd.set_cursor_blink_state(State::Off);
 
     lcd.typewriter_write("hello, LCD1602!", 250_000);
 
-    lcd.set_cursor(State::Off);
+    lcd.set_cursor_state(State::Off);
 
     lcd.full_display_blink(3, 500_000);
 

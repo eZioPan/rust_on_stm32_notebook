@@ -2,7 +2,7 @@ use crate::lcd::{command_set::Font, LCDAPI};
 
 use super::{
     command_set::{LineMode, MoveDirection, ShiftType, State},
-    StructAPI, LCD,
+    RAMType, StructAPI, LCD,
 };
 
 impl StructAPI for LCD {
@@ -57,5 +57,9 @@ impl StructAPI for LCD {
         }
 
         self.cursor_pos = pos;
+    }
+
+    fn internal_set_ram_type(&mut self, ram_type: RAMType) {
+        self.ram_type = ram_type;
     }
 }
