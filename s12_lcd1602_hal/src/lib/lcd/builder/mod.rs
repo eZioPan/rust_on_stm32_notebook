@@ -1,15 +1,31 @@
 use stm32f4xx_hal::timer::SysDelay;
 
+mod impl_builder_api;
+
 use super::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
-    lcd::LCD,
-    lcd_pins::LCDPins,
+    pins::Pins,
+    LCD,
 };
 
-pub trait LCDBuilderAPI {
+pub struct Builder {
+    pins: Option<Pins>,
+    delayer: Option<SysDelay>,
+    line: LineMode,
+    font: Font,
+    display_on: State,
+    cursor_on: State,
+    cursor_blink: State,
+    dir: MoveDirection,
+    shift_type: ShiftType,
+    cursor_pos: (u8, u8),
+    wait_interval_us: u32,
+}
+
+pub trait BuilderAPI {
     fn build_and_init(self) -> LCD;
-    fn new(pins: LCDPins, delayer: SysDelay) -> Self;
-    fn pop_pins(&mut self) -> LCDPins;
+    fn new(pins: Pins, delayer: SysDelay) -> Self;
+    fn pop_pins(&mut self) -> Pins;
     fn pop_delayer(&mut self) -> SysDelay;
     fn set_line(self, line: LineMode) -> Self;
     fn get_line(&self) -> LineMode;

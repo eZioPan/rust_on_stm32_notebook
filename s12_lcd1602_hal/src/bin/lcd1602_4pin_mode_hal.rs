@@ -26,13 +26,11 @@ use panic_rtt_target as _;
 use rtt_target::rtt_init_print;
 use stm32f4xx_hal::{pac, prelude::*};
 
-use lcd1602::{
+use lcd1602::lcd::{
+    builder::{Builder, BuilderAPI},
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
-    lcd_builder::LCDBuilder,
-    lcd_builder_traits::LCDBuilderAPI,
-    lcd_pins::LCDPins,
-    lcd_pins_traits::LCDPinsTopLevelAPI,
-    lcd_traits::{LCDExt, LCDTopLevelAPI},
+    pins::{Pins, PinsAPI},
+    Ext, LCDAPI,
 };
 
 #[cortex_m_rt::entry]
@@ -82,9 +80,9 @@ fn main() -> ! {
         .internal_pull_up(true)
         .erase();
 
-    let lcd_pins = LCDPins::new(rs_pin, rw_pin, en_pin, db4_pin, db5_pin, db6_pin, db7_pin);
+    let lcd_pins = Pins::new(rs_pin, rw_pin, en_pin, db4_pin, db5_pin, db6_pin, db7_pin);
 
-    let mut lcd_builder = LCDBuilder::new(lcd_pins, delayer)
+    let mut lcd_builder = Builder::new(lcd_pins, delayer)
         .set_blink(State::On)
         .set_cursor(State::On)
         .set_direction(MoveDirection::Right)

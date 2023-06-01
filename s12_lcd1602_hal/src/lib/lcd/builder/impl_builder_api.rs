@@ -1,29 +1,14 @@
 use stm32f4xx_hal::timer::SysDelay;
 
-use crate::lcd_pins::LCDPins;
-
-use super::{
+use crate::lcd::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
-    lcd::LCD,
-    lcd_builder_traits::LCDBuilderAPI,
-    lcd_traits::LCDTopLevelAPI,
+    pins::Pins,
+    LCD, LCDAPI,
 };
 
-pub struct LCDBuilder {
-    pub(crate) pins: Option<LCDPins>,
-    pub(crate) delayer: Option<SysDelay>,
-    pub(crate) line: LineMode,
-    pub(crate) font: Font,
-    pub(crate) display_on: State,
-    pub(crate) cursor_on: State,
-    pub(crate) cursor_blink: State,
-    pub(crate) dir: MoveDirection,
-    pub(crate) shift_type: ShiftType,
-    pub(crate) cursor_pos: (u8, u8),
-    pub(crate) wait_interval_us: u32,
-}
+use super::{Builder, BuilderAPI};
 
-impl LCDBuilderAPI for LCDBuilder {
+impl BuilderAPI for Builder {
     fn build_and_init(mut self) -> LCD {
         let mut lcd = LCD {
             pins: self.pop_pins(),
@@ -39,11 +24,10 @@ impl LCDBuilderAPI for LCDBuilder {
             wait_interval_us: self.get_wait_interval_us(),
         };
         lcd.init_lcd();
-
         lcd
     }
 
-    fn new(pins: LCDPins, delayer: SysDelay) -> Self {
+    fn new(pins: Pins, delayer: SysDelay) -> Self {
         Self {
             pins: Some(pins),
             delayer: Some(delayer),
@@ -59,7 +43,7 @@ impl LCDBuilderAPI for LCDBuilder {
         }
     }
 
-    fn pop_pins(&mut self) -> LCDPins {
+    fn pop_pins(&mut self) -> Pins {
         self.pins.take().expect("No Pins to pop")
     }
 

@@ -1,9 +1,35 @@
-use super::{
+use stm32f4xx_hal::timer::SysDelay;
+
+use self::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     full_command::FullCommand,
+    pins::Pins,
 };
 
-pub trait LCDExt {
+pub mod builder;
+pub mod command_set;
+mod full_command;
+mod impl_ext;
+mod impl_lcd_api;
+mod impl_pin_interaction;
+mod impl_struct_api;
+pub mod pins;
+
+pub struct LCD {
+    pins: Pins,
+    delayer: SysDelay,
+    line: LineMode,
+    font: Font,
+    display_on: State,
+    cursor_on: State,
+    cursor_blink: State,
+    direction: MoveDirection,
+    shift_type: ShiftType,
+    cursor_pos: (u8, u8),
+    wait_interval_us: u32,
+}
+
+pub trait Ext {
     fn write_char(&mut self, char: char);
     fn write_str(&mut self, str: &str);
     fn typewriter_write(&mut self, str: &str, extra_delay_us: u32);
@@ -12,7 +38,7 @@ pub trait LCDExt {
     fn full_display_blink(&mut self, count: u32, change_interval_us: u32);
 }
 
-pub trait LCDTopLevelAPI {
+pub trait LCDAPI {
     fn init_lcd(&mut self);
     fn write_to_cur(&mut self, character: impl Into<u8>);
     fn write_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8));
@@ -39,7 +65,7 @@ pub trait LCDTopLevelAPI {
     fn get_wait_interval_us(&self) -> u32;
 }
 
-pub(crate) trait LCDStructAPI {
+trait StructAPI {
     fn internal_set_line(&mut self, line: LineMode);
     fn internal_set_font(&mut self, font: Font);
     fn internal_set_display(&mut self, display: State);
@@ -50,7 +76,7 @@ pub(crate) trait LCDStructAPI {
     fn internal_set_cursor_pos(&mut self, pos: (u8, u8));
 }
 
-pub(crate) trait LCDPinsInteraction {
+trait PinsInteraction {
     fn delay_and_send(&mut self, command: impl Into<FullCommand>, wait_ms: u32) -> Option<u8>;
     fn wait_and_send(&mut self, command: impl Into<FullCommand>) -> Option<u8>;
     fn wait_for_idle(&mut self);

@@ -1,85 +1,13 @@
 use embedded_hal::blocking::delay::{DelayMs, DelayUs};
-use stm32f4xx_hal::timer::SysDelay;
+
+use crate::lcd::StructAPI;
 
 use super::{
     command_set::{CommandSet, DataWidth, Font, LineMode, MoveDirection, ShiftType, State},
-    full_command::FullCommand,
-    lcd_pins::LCDPins,
-    lcd_pins_traits::LCDPinsCrateLevelAPI,
-    lcd_traits::{LCDExt, LCDPinsInteraction, LCDStructAPI, LCDTopLevelAPI},
+    PinsInteraction, LCD, LCDAPI,
 };
 
-pub struct LCD {
-    pub(crate) pins: LCDPins,
-    pub(crate) delayer: SysDelay,
-    pub(crate) line: LineMode,
-    pub(crate) font: Font,
-    pub(crate) display_on: State,
-    pub(crate) cursor_on: State,
-    pub(crate) cursor_blink: State,
-    pub(crate) direction: MoveDirection,
-    pub(crate) shift_type: ShiftType,
-    pub(crate) cursor_pos: (u8, u8),
-    pub(crate) wait_interval_us: u32,
-}
-
-impl LCDExt for LCD {
-    /// 以特定的时间间隔，切换整个屏幕特定次数
-    /// 当 count 为 0 时，永续切换屏幕
-    fn full_display_blink(&mut self, count: u32, interval_us: u32) {
-        if count == 0 {
-            loop {
-                self.delay_us(interval_us);
-                self.toggle_display();
-            }
-        } else {
-            for _ in 0..count * 2 {
-                self.delay_us(interval_us);
-                self.toggle_display();
-            }
-        }
-    }
-
-    fn toggle_display(&mut self) {
-        match self.get_display() {
-            State::Off => self.set_display(State::On),
-            State::On => self.set_display(State::Off),
-        }
-    }
-
-    fn typewriter_write(&mut self, str: &str, extra_delay_us: u32) {
-        for char in str.chars() {
-            self.delay_us(extra_delay_us);
-            self.write_char(char);
-        }
-    }
-
-    fn write_str(&mut self, str: &str) {
-        for char in str.chars() {
-            self.write_char(char);
-        }
-    }
-
-    /// 这里的字符仅覆盖了如下范围：
-    /// ASCII 0x20 到 0x7D
-    fn write_char(&mut self, char: char) {
-        let out_byte = match char.is_ascii() {
-            true => {
-                let out_byte = char as u8;
-                if out_byte >= 0x20 && out_byte <= 0x7D {
-                    out_byte
-                } else {
-                    0xFF
-                }
-            }
-            false => 0xFF,
-        };
-
-        self.write_to_cur(out_byte);
-    }
-}
-
-impl LCDTopLevelAPI for LCD {
+impl LCDAPI for LCD {
     fn init_lcd(&mut self) {
         // 在初始化流程中，我们最好每次都发送“裸指令”
         // 不要使用 LCD 结构体提供的其它方法
@@ -275,84 +203,5 @@ impl LCDTopLevelAPI for LCD {
 
     fn get_wait_interval_us(&self) -> u32 {
         self.wait_interval_us
-    }
-}
-
-impl LCDStructAPI for LCD {
-    fn internal_set_line(&mut self, line: LineMode) {
-        assert!(
-            (self.get_font() == Font::Font5x11) && (line == LineMode::OneLine),
-            "font is 5x11, line cannot be 2"
-        );
-
-        self.line = line;
-    }
-
-    fn internal_set_font(&mut self, font: Font) {
-        assert!(
-            (self.get_line() == LineMode::TwoLine) && (font == Font::Font5x8),
-            "there is 2 line, font cannot be 5x11"
-        );
-
-        self.font = font;
-    }
-
-    fn internal_set_display(&mut self, display: State) {
-        self.display_on = display;
-    }
-
-    fn internal_set_cursor(&mut self, cursor: State) {
-        self.cursor_on = cursor;
-    }
-
-    fn internal_set_blink(&mut self, blink: State) {
-        self.cursor_blink = blink;
-    }
-
-    fn internal_set_direction(&mut self, dir: MoveDirection) {
-        self.direction = dir;
-    }
-
-    fn internal_set_shift(&mut self, shift: ShiftType) {
-        self.shift_type = shift;
-    }
-
-    fn internal_set_cursor_pos(&mut self, pos: (u8, u8)) {
-        match self.line {
-            LineMode::OneLine => {
-                assert!(pos.0 < 80, "x offset too big");
-                assert!(pos.1 < 1, "always keep y as 0 on OneLine mode");
-            }
-            LineMode::TwoLine => {
-                assert!(pos.0 < 40, "x offset too big");
-                assert!(pos.1 < 2, "y offset too big");
-            }
-        }
-
-        self.cursor_pos = pos;
-    }
-}
-
-impl LCDPinsInteraction for LCD {
-    fn delay_and_send(&mut self, command: impl Into<FullCommand>, delay_ms: u32) -> Option<u8> {
-        self.delayer.delay_us(delay_ms);
-        self.pins.send(command.into())
-    }
-
-    fn wait_and_send(&mut self, command: impl Into<FullCommand>) -> Option<u8> {
-        self.wait_for_idle();
-        self.pins.send(command.into())
-    }
-
-    fn wait_for_idle(&mut self) {
-        while self.check_busy() {
-            self.delayer.delay_us(self.get_wait_interval_us());
-        }
-    }
-
-    fn check_busy(&mut self) -> bool {
-        let busy_state = self.pins.send(CommandSet::ReadBusyFlagAndAddress).unwrap();
-
-        busy_state.checked_shr(7).unwrap() & 1 == 1
     }
 }
