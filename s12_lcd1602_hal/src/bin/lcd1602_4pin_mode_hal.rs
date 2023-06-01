@@ -90,18 +90,18 @@ fn main() -> ! {
         .set_font(Font::Font5x8)
         .set_line(LineMode::TwoLine)
         .set_shift(ShiftType::Cursor)
-        .set_cursor_pos((1, 0)) // 这里我们故意向右偏移了一个字符，测试偏移功能是否正常
         .set_wait_interval_us(10);
 
     lcd_builder = lcd_builder;
 
     let mut lcd = lcd_builder.build_and_init();
 
+    lcd.set_cursor_pos((1, 0)); // 这里我们故意向右偏移了一个字符，测试偏移功能是否正常
+
     lcd.typewriter_write("hello, world! ~", 250_000); // 这里故意追加了一个波浪线，应该被映射为全亮方块
 
     lcd.delay_ms(250u32);
-    // 这里故意设置到第一行的末尾，测试换行功能是否正常
-    lcd.set_cursor_pos((39, 0));
+    lcd.set_cursor_pos((39, 0)); // 这里故意设置到第一行的末尾，测试换行功能是否正常
 
     lcd.set_cursor_blink_state(State::Off);
 
