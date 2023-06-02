@@ -82,19 +82,19 @@ fn main() -> ! {
 
     let lcd_pins = Pins::new(rs_pin, rw_pin, en_pin, db4_pin, db5_pin, db6_pin, db7_pin);
 
-    let mut lcd_builder = Builder::new(lcd_pins, delayer)
+    let lcd_builder = Builder::new(lcd_pins, delayer)
         .set_blink(State::On)
         .set_cursor(State::On)
-        .set_direction(MoveDirection::Right)
+        .set_direction(MoveDirection::LeftToRight)
         .set_display(State::On)
         .set_font(Font::Font5x8)
         .set_line(LineMode::TwoLine)
-        .set_shift(ShiftType::Cursor)
+        .set_shift(ShiftType::CursorOnly)
         .set_wait_interval_us(10);
 
-    lcd_builder = lcd_builder;
-
     let mut lcd = lcd_builder.build_and_init();
+
+    lcd.write_graph_to_cgram(1, HEART); // 在 CGRAM 里画一个小爱心
 
     lcd.set_cursor_pos((1, 0)); // 这里我们故意向右偏移了一个字符，测试偏移功能是否正常
 
@@ -109,7 +109,16 @@ fn main() -> ! {
 
     lcd.set_cursor_state(State::Off);
 
+    // 最后我们用我们绘制的心形覆盖全亮的方块
+    lcd.delay_ms(1_000u32);
+    lcd.write_custom_char_to_pos(1, (15, 0));
+
+    // 让后让整个屏幕闪烁三次
     lcd.full_display_blink(3, 500_000);
 
     loop {}
 }
+
+const HEART: [u8; 8] = [
+    0b00000, 0b00000, 0b01010, 0b11111, 0b01110, 0b00100, 0b00000, 0b00000,
+];

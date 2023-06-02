@@ -48,6 +48,9 @@ pub trait LCDAPI {
     fn init_lcd(&mut self);
     fn write_u8_to_cur(&mut self, character: impl Into<u8>);
     fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8));
+    fn write_graph_to_cgram(&mut self, index: u8, graph: [u8; 8]);
+    fn write_custom_char_to_cur(&mut self, index: u8);
+    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8));
     fn clean_display(&mut self);
     fn return_home(&mut self);
     fn set_line(&mut self, line: LineMode);

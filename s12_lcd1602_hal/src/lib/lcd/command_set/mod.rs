@@ -24,16 +24,16 @@ pub(super) enum CommandSet {
 
 #[derive(Clone, Copy, PartialEq, Default)]
 pub enum MoveDirection {
-    Left,
+    RightToLeft,
     #[default]
-    Right,
+    LeftToRight,
 }
 
 #[derive(Clone, Copy, Default)]
 pub enum ShiftType {
-    Cursor,
     #[default]
-    Screen,
+    CursorOnly,
+    CursorAndDisplay,
 }
 
 #[derive(Clone, Copy, Default)]

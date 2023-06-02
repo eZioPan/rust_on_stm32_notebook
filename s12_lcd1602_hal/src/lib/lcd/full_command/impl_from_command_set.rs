@@ -30,13 +30,13 @@ impl From<CommandSet> for FullCommand {
                 let mut raw_bits: u8 = 0b0000_0100;
 
                 match dir {
-                    MoveDirection::Left => clear_bit(&mut raw_bits, 1),
-                    MoveDirection::Right => set_bit(&mut raw_bits, 1),
+                    MoveDirection::RightToLeft => clear_bit(&mut raw_bits, 1),
+                    MoveDirection::LeftToRight => set_bit(&mut raw_bits, 1),
                 }
 
                 match st {
-                    ShiftType::Cursor => clear_bit(&mut raw_bits, 0),
-                    ShiftType::Screen => set_bit(&mut raw_bits, 0),
+                    ShiftType::CursorOnly => clear_bit(&mut raw_bits, 0),
+                    ShiftType::CursorAndDisplay => set_bit(&mut raw_bits, 0),
                 }
 
                 Self::new(
@@ -77,13 +77,13 @@ impl From<CommandSet> for FullCommand {
                 let mut raw_bits = 0b0001_0000;
 
                 match st {
-                    ShiftType::Cursor => clear_bit(&mut raw_bits, 3),
-                    ShiftType::Screen => set_bit(&mut raw_bits, 3),
+                    ShiftType::CursorOnly => clear_bit(&mut raw_bits, 3),
+                    ShiftType::CursorAndDisplay => set_bit(&mut raw_bits, 3),
                 }
 
                 match dir {
-                    MoveDirection::Left => clear_bit(&mut raw_bits, 2),
-                    MoveDirection::Right => set_bit(&mut raw_bits, 2),
+                    MoveDirection::RightToLeft => clear_bit(&mut raw_bits, 2),
+                    MoveDirection::LeftToRight => set_bit(&mut raw_bits, 2),
                 }
 
                 Self::new(

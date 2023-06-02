@@ -53,13 +53,23 @@ impl LCDAPI for LCD {
         self.wait_and_send(CommandSet::SetCGRAM(addr));
     }
 
+    fn write_custom_char_to_cur(&mut self, index: u8) {
+        assert!(index < 8, "Only 8 graphs allowed in CGRAM");
+        self.write_u8_to_cur(index);
+    }
+
+    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8)) {
+        assert!(index < 8, "Only 8 graphs allowed in CGRAM");
+        self.write_u8_to_pos(index, pos);
+    }
+
     fn write_u8_to_cur(&mut self, character: impl Into<u8>) {
         assert!(
             self.get_ram_type() == RAMType::DDRAM,
             "Current in CGRAM, use .set_cursor_pos() to change to DDRAM"
         );
 
-        if self.direction == MoveDirection::Left {
+        if self.direction == MoveDirection::RightToLeft {
             unimplemented!("Haven't implement right to left write");
         };
 
@@ -100,6 +110,39 @@ impl LCDAPI for LCD {
     fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8)) {
         self.set_cursor_pos(pos);
         self.wait_and_send(CommandSet::WriteDataToRAM(character.into()));
+    }
+
+    fn write_graph_to_cgram(&mut self, index: u8, graph_data: [u8; 8]) {
+        assert!(index < 8, "Only 8 graphs allowed in CGRAM");
+
+        for line in graph_data {
+            assert!(
+                line < 2u8.pow(5),
+                "Only lower 5 bits use to construct display"
+            );
+        }
+
+        // 有一个问题是，如果写入方向是从右到左，那么这里需要临时调整一下方向
+        // 调整为从左到右，这样我们绘制字符的时候，就是从上到下绘制
+        let mut direction_fliped = false;
+        if self.get_direction() == MoveDirection::RightToLeft {
+            self.set_direction(MoveDirection::LeftToRight);
+            direction_fliped = true;
+        }
+
+        let cgram_data_addr_start = index.checked_shl(3).unwrap();
+
+        // 注意 AC 在 CGRAM 里也是会自增的，因此不需要每一步都设置位置
+        self.set_cgram_addr(cgram_data_addr_start as u8);
+        for line_data in graph_data {
+            self.wait_and_send(CommandSet::WriteDataToRAM(line_data));
+        }
+
+        // 最后我们检查一下书写方向是否被翻转，
+        // 如果被翻转表示原始书写的方向为从右向左，记得需要翻转回去
+        if direction_fliped {
+            self.set_direction(MoveDirection::RightToLeft)
+        }
     }
 
     fn set_line(&mut self, line: LineMode) {
