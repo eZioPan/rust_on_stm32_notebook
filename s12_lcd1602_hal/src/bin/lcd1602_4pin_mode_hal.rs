@@ -113,6 +113,16 @@ fn main() -> ! {
     lcd.delay_ms(1_000u32);
     lcd.write_custom_char_to_pos(1, (15, 0));
 
+    // 挪动一下屏幕
+    lcd.delay_ms(1_000u32);
+    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::LeftToRight);
+    lcd.delay_ms(1_000u32);
+    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::RightToLeft);
+    lcd.delay_ms(1_000u32);
+    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::RightToLeft);
+    lcd.delay_ms(1_000u32);
+    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::LeftToRight);
+
     // 让后让整个屏幕闪烁三次
     lcd.full_display_blink(3, 500_000);
 

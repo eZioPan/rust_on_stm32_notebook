@@ -17,6 +17,7 @@ pub(super) enum CommandSet {
     SetCGRAM(u8),
     SetDDRAM(u8),
     ReadBusyFlagAndAddress,
+    // 这条指令没有唯一对应的函数，它分布在对 DDRAM 和 CGRAM 写入数据的函数中
     WriteDataToRAM(u8),
     #[allow(dead_code)]
     ReadDataFromRAM,

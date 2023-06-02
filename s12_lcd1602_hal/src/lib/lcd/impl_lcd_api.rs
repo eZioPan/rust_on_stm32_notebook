@@ -14,12 +14,12 @@ impl LCDAPI for LCD {
         self.delay_and_send(CommandSet::HalfFunctionSet, 40_000);
 
         self.delay_and_send(
-            CommandSet::FunctionSet(DataWidth::Bit4, self.get_line(), self.get_font()),
+            CommandSet::FunctionSet(DataWidth::Bit4, self.get_line_mode(), self.get_font()),
             40,
         );
 
         self.delay_and_send(
-            CommandSet::FunctionSet(DataWidth::Bit4, self.get_line(), self.get_font()),
+            CommandSet::FunctionSet(DataWidth::Bit4, self.get_line_mode(), self.get_font()),
             40,
         );
 
@@ -145,8 +145,17 @@ impl LCDAPI for LCD {
         }
     }
 
-    fn set_line(&mut self, line: LineMode) {
-        self.internal_set_line(line);
+    fn shift_cursor_or_display(&mut self, st: ShiftType, dir: MoveDirection) {
+        self.internal_shift_cursor_or_display(st, dir);
+        self.wait_and_send(CommandSet::CursorOrDisplayShift(st, dir));
+    }
+
+    fn get_display_offset(&self) -> u8 {
+        self.display_offset
+    }
+
+    fn set_line_mode(&mut self, line: LineMode) {
+        self.internal_set_line_mode(line);
         self.wait_and_send(CommandSet::FunctionSet(
             DataWidth::Bit4,
             self.line,
@@ -154,7 +163,7 @@ impl LCDAPI for LCD {
         ));
     }
 
-    fn get_line(&self) -> LineMode {
+    fn get_line_mode(&self) -> LineMode {
         self.line
     }
 
@@ -172,7 +181,7 @@ impl LCDAPI for LCD {
     }
 
     fn set_display_state(&mut self, display: State) {
-        self.internal_set_display(display);
+        self.internal_set_display_state(display);
         self.wait_and_send(CommandSet::DisplayOnOff {
             display: self.display_on,
             cursor: self.cursor_on,
@@ -185,7 +194,7 @@ impl LCDAPI for LCD {
     }
 
     fn set_cursor_state(&mut self, cursor: State) {
-        self.internal_set_cursor(cursor);
+        self.internal_set_cursor_state(cursor);
         self.wait_and_send(CommandSet::DisplayOnOff {
             display: self.display_on,
             cursor: self.cursor_on,
@@ -198,7 +207,7 @@ impl LCDAPI for LCD {
     }
 
     fn set_cursor_blink_state(&mut self, blink: State) {
-        self.internal_set_blink(blink);
+        self.internal_set_cursor_blink(blink);
         self.wait_and_send(CommandSet::DisplayOnOff {
             display: self.display_on,
             cursor: self.cursor_on,
