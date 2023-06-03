@@ -3,7 +3,7 @@ use stm32f4xx_hal::timer::SysDelay;
 use crate::lcd::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::Pins,
-    RAMType, LCD, LCDAPI,
+    LCDBasic, RAMType, LCD,
 };
 
 use super::{Builder, BuilderAPI};

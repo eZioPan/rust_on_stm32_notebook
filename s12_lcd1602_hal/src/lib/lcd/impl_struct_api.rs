@@ -1,4 +1,4 @@
-use crate::lcd::{command_set::Font, LCDAPI};
+use crate::lcd::{command_set::Font, LCDBasic};
 
 use super::{
     command_set::{LineMode, MoveDirection, ShiftType, State},

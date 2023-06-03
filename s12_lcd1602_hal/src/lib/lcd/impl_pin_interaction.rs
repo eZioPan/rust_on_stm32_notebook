@@ -1,8 +1,8 @@
 use embedded_hal::blocking::delay::DelayUs;
 
 use super::{
-    command_set::CommandSet, full_command::FullCommand, pins::PinsCrateLevelAPI, PinsInteraction,
-    LCD, LCDAPI,
+    command_set::CommandSet, full_command::FullCommand, pins::PinsCrateLevelAPI, LCDBasic,
+    PinsInteraction, LCD,
 };
 
 impl PinsInteraction for LCD {

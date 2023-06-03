@@ -30,7 +30,7 @@ use lcd1602::lcd::{
     builder::{Builder, BuilderAPI},
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::{Pins, PinsAPI},
-    Ext, LCDAPI,
+    LCDAnimation, LCDBasic, LCDExt,
 };
 
 #[cortex_m_rt::entry]
@@ -94,7 +94,7 @@ fn main() -> ! {
 
     let mut lcd = lcd_builder.build_and_init();
 
-    lcd.write_graph_to_cgram(1, HEART); // 在 CGRAM 里画一个小爱心
+    lcd.draw_graph_to_cgram(1, HEART); // 在 CGRAM 里画一个小爱心
 
     lcd.set_cursor_pos((1, 0)); // 这里我们故意向右偏移了一个字符，测试偏移功能是否正常
 

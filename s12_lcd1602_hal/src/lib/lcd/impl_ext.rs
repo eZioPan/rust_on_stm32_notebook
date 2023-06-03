@@ -1,35 +1,15 @@
 use crate::lcd::RAMType;
 
-use super::{command_set::State, Ext, LCD, LCDAPI};
+use super::{
+    command_set::{CommandSet, State},
+    LCDBasic, LCDExt, PinsInteraction, LCD,
+};
 
-impl Ext for LCD {
-    /// 以特定的时间间隔，切换整个屏幕特定次数
-    /// 当 count 为 0 时，永续切换屏幕
-    fn full_display_blink(&mut self, count: u32, interval_us: u32) {
-        if count == 0 {
-            loop {
-                self.delay_us(interval_us);
-                self.toggle_display();
-            }
-        } else {
-            for _ in 0..count * 2 {
-                self.delay_us(interval_us);
-                self.toggle_display();
-            }
-        }
-    }
-
+impl LCDExt for LCD {
     fn toggle_display(&mut self) {
         match self.get_display_state() {
             State::Off => self.set_display_state(State::On),
             State::On => self.set_display_state(State::Off),
-        }
-    }
-
-    fn typewriter_write(&mut self, str: &str, extra_delay_us: u32) {
-        for char in str.chars() {
-            self.delay_us(extra_delay_us);
-            self.write_char(char);
         }
     }
 
@@ -60,5 +40,28 @@ impl Ext for LCD {
         };
 
         self.write_u8_to_cur(out_byte);
+    }
+
+    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8)) {
+        assert!(index < 8, "Only 8 graphs allowed in CGRAM");
+        self.write_u8_to_pos(index, pos);
+    }
+
+    fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8)) {
+        self.set_cursor_pos(pos);
+        self.wait_and_send(CommandSet::WriteDataToRAM(character.into()));
+    }
+
+    fn extract_graph_from_cgram(&mut self, index: u8) -> [u8; 8] {
+        assert!(index < 8, "index too big, should less than 8");
+
+        self.set_cgram_addr(index.checked_shl(3).unwrap());
+
+        let mut graph: [u8; 8] = [0u8; 8];
+
+        for i in 0..8 {
+            graph[i] = self.read_u8_from_cur();
+        }
+        graph
     }
 }

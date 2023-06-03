@@ -8,7 +8,6 @@ pub(super) enum CommandSet {
         cursor: State,
         cursor_blink: State,
     },
-    #[allow(dead_code)]
     CursorOrDisplayShift(ShiftType, MoveDirection),
     // 这个 HalfFunctionSet 比较特殊，是在初始化 LCD1602 到 4 bit 模式所特有的“半条指令”
     // 而且 ST7066U 中并没有给这半条指令取新的名字，这里是我为了规整自行确定的名称
@@ -19,7 +18,6 @@ pub(super) enum CommandSet {
     ReadBusyFlagAndAddress,
     // 这条指令没有唯一对应的函数，它分布在对 DDRAM 和 CGRAM 写入数据的函数中
     WriteDataToRAM(u8),
-    #[allow(dead_code)]
     ReadDataFromRAM,
 }
 

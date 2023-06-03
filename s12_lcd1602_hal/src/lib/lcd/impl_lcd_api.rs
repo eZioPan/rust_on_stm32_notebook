@@ -1,13 +1,11 @@
-use embedded_hal::blocking::delay::{DelayMs, DelayUs};
-
-use crate::lcd::StructAPI;
+use crate::lcd::{LCDExt, StructAPI};
 
 use super::{
     command_set::{CommandSet, DataWidth, Font, LineMode, MoveDirection, ShiftType, State},
-    PinsInteraction, RAMType, LCD, LCDAPI,
+    LCDBasic, PinsInteraction, RAMType, LCD,
 };
 
-impl LCDAPI for LCD {
+impl LCDBasic for LCD {
     fn init_lcd(&mut self) {
         // 在初始化流程中，我们最好每次都发送“裸指令”
         // 不要使用 LCD 结构体提供的其它方法
@@ -32,8 +30,8 @@ impl LCDAPI for LCD {
         self.wait_and_send(CommandSet::ClearDisplay);
 
         self.wait_and_send(CommandSet::EntryModeSet(
-            self.get_direction(),
-            self.get_shift_type(),
+            self.get_default_direction(),
+            self.get_default_shift_type(),
         ));
     }
 
@@ -56,11 +54,6 @@ impl LCDAPI for LCD {
     fn write_custom_char_to_cur(&mut self, index: u8) {
         assert!(index < 8, "Only 8 graphs allowed in CGRAM");
         self.write_u8_to_cur(index);
-    }
-
-    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8)) {
-        assert!(index < 8, "Only 8 graphs allowed in CGRAM");
-        self.write_u8_to_pos(index, pos);
     }
 
     fn write_u8_to_cur(&mut self, character: impl Into<u8>) {
@@ -107,12 +100,11 @@ impl LCDAPI for LCD {
         }
     }
 
-    fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8)) {
-        self.set_cursor_pos(pos);
-        self.wait_and_send(CommandSet::WriteDataToRAM(character.into()));
+    fn read_u8_from_cur(&mut self) -> u8 {
+        self.wait_and_send(CommandSet::ReadDataFromRAM).unwrap()
     }
 
-    fn write_graph_to_cgram(&mut self, index: u8, graph_data: [u8; 8]) {
+    fn draw_graph_to_cgram(&mut self, index: u8, graph_data: [u8; 8]) {
         assert!(index < 8, "Only 8 graphs allowed in CGRAM");
 
         for line in graph_data {
@@ -125,8 +117,8 @@ impl LCDAPI for LCD {
         // 有一个问题是，如果写入方向是从右到左，那么这里需要临时调整一下方向
         // 调整为从左到右，这样我们绘制字符的时候，就是从上到下绘制
         let mut direction_fliped = false;
-        if self.get_direction() == MoveDirection::RightToLeft {
-            self.set_direction(MoveDirection::LeftToRight);
+        if self.get_default_direction() == MoveDirection::RightToLeft {
+            self.set_default_direction(MoveDirection::LeftToRight);
             direction_fliped = true;
         }
 
@@ -141,7 +133,7 @@ impl LCDAPI for LCD {
         // 最后我们检查一下书写方向是否被翻转，
         // 如果被翻转表示原始书写的方向为从右向左，记得需要翻转回去
         if direction_fliped {
-            self.set_direction(MoveDirection::RightToLeft)
+            self.set_default_direction(MoveDirection::RightToLeft)
         }
     }
 
@@ -219,21 +211,21 @@ impl LCDAPI for LCD {
         self.cursor_blink
     }
 
-    fn set_direction(&mut self, dir: MoveDirection) {
+    fn set_default_direction(&mut self, dir: MoveDirection) {
         self.internal_set_direction(dir);
         self.wait_and_send(CommandSet::EntryModeSet(self.direction, self.shift_type));
     }
 
-    fn get_direction(&self) -> MoveDirection {
+    fn get_default_direction(&self) -> MoveDirection {
         self.direction
     }
 
-    fn set_shift_type(&mut self, shift: ShiftType) {
+    fn set_default_shift_type(&mut self, shift: ShiftType) {
         self.internal_set_shift(shift);
         self.wait_and_send(CommandSet::EntryModeSet(self.direction, self.shift_type));
     }
 
-    fn get_shift_type(&self) -> ShiftType {
+    fn get_default_shift_type(&self) -> ShiftType {
         self.shift_type
     }
 
@@ -265,14 +257,6 @@ impl LCDAPI for LCD {
 
     fn get_wait_interval_us(&self) -> u32 {
         self.wait_interval_us
-    }
-
-    fn delay_ms(&mut self, ms: u32) {
-        self.delayer.delay_ms(ms);
-    }
-
-    fn delay_us(&mut self, us: u32) {
-        self.delayer.delay_us(us);
     }
 
     fn get_ram_type(&self) -> RAMType {

@@ -9,6 +9,7 @@ use self::{
 pub mod builder;
 pub mod command_set;
 mod full_command;
+mod impl_animation;
 mod impl_ext;
 mod impl_lcd_api;
 mod impl_pin_interaction;
@@ -37,21 +38,28 @@ pub enum RAMType {
     CGRAM,
 }
 
-pub trait Ext {
-    fn write_char(&mut self, char: char);
-    fn write_str(&mut self, str: &str);
-    fn typewriter_write(&mut self, str: &str, extra_delay_us: u32);
-    fn toggle_display(&mut self);
+pub trait LCDAnimation {
     fn full_display_blink(&mut self, count: u32, change_interval_us: u32);
+    fn typewriter_write(&mut self, str: &str, extra_delay_us: u32);
+    fn delay_ms(&mut self, ms: u32);
+    fn delay_us(&mut self, us: u32);
 }
 
-pub trait LCDAPI {
+pub trait LCDExt {
+    fn toggle_display(&mut self);
+    fn write_char(&mut self, char: char);
+    fn write_str(&mut self, str: &str);
+    fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8));
+    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8));
+    fn extract_graph_from_cgram(&mut self, index: u8) -> [u8; 8];
+}
+
+pub trait LCDBasic {
     fn init_lcd(&mut self);
     fn write_u8_to_cur(&mut self, character: impl Into<u8>);
-    fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8));
-    fn write_graph_to_cgram(&mut self, index: u8, graph: [u8; 8]);
+    fn read_u8_from_cur(&mut self) -> u8;
+    fn draw_graph_to_cgram(&mut self, index: u8, graph: [u8; 8]);
     fn write_custom_char_to_cur(&mut self, index: u8);
-    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8));
     fn clean_display(&mut self);
     fn return_home(&mut self);
     fn set_line_mode(&mut self, line: LineMode);
@@ -65,10 +73,10 @@ pub trait LCDAPI {
     fn get_ram_type(&self) -> RAMType;
     fn set_cursor_blink_state(&mut self, blink: State);
     fn get_cursor_blink_state(&self) -> State;
-    fn set_direction(&mut self, dir: MoveDirection);
-    fn get_direction(&self) -> MoveDirection;
-    fn set_shift_type(&mut self, shift: ShiftType);
-    fn get_shift_type(&self) -> ShiftType;
+    fn set_default_direction(&mut self, dir: MoveDirection);
+    fn get_default_direction(&self) -> MoveDirection;
+    fn set_default_shift_type(&mut self, shift: ShiftType);
+    fn get_default_shift_type(&self) -> ShiftType;
     fn set_cursor_pos(&mut self, pos: (u8, u8));
     fn set_cgram_addr(&mut self, addr: u8);
     fn get_cursor_pos(&self) -> (u8, u8);
@@ -76,8 +84,6 @@ pub trait LCDAPI {
     fn get_display_offset(&self) -> u8;
     fn set_wait_interval_us(&mut self, interval: u32);
     fn get_wait_interval_us(&self) -> u32;
-    fn delay_ms(&mut self, ms: u32);
-    fn delay_us(&mut self, us: u32);
 }
 
 trait StructAPI {
