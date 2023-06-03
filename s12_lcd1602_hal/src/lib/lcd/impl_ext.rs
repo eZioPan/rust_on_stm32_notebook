@@ -14,9 +14,7 @@ impl LCDExt for LCD {
     }
 
     fn write_str(&mut self, str: &str) {
-        for char in str.chars() {
-            self.write_char(char);
-        }
+        str.chars().for_each(|char| self.write_char(char));
     }
 
     /// 这里的字符仅覆盖了如下范围：
@@ -28,15 +26,9 @@ impl LCDExt for LCD {
         );
 
         let out_byte = match char.is_ascii() {
-            true => {
-                let out_byte = char as u8;
-                if out_byte >= 0x20 && out_byte <= 0x7D {
-                    out_byte
-                } else {
-                    0xFF
-                }
-            }
-            false => 0xFF,
+            // 在 Rust 判定该字节为 ASCII 的同时，我们还得判定这个字符落 LCD1602 CGRAM 与 ASCII 重叠的位置
+            true if (0x20 <= char as u8) && (char as u8 <= 0x7D) => char as u8,
+            _ => 0xFF,
         };
 
         self.write_u8_to_cur(out_byte);
@@ -55,13 +47,15 @@ impl LCDExt for LCD {
     fn extract_graph_from_cgram(&mut self, index: u8) -> [u8; 8] {
         assert!(index < 8, "index too big, should less than 8");
 
+        // 将 index 偏移为 CGRAM 中的地址
         self.set_cgram_addr(index.checked_shl(3).unwrap());
 
         let mut graph: [u8; 8] = [0u8; 8];
 
-        for i in 0..8 {
-            graph[i] = self.read_u8_from_cur();
-        }
+        graph
+            .iter_mut()
+            .for_each(|line| *line = self.read_u8_from_cur());
+
         graph
     }
 }

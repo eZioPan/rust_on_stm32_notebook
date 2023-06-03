@@ -1,5 +1,7 @@
 use embedded_hal::blocking::delay::DelayUs;
 
+use crate::utils::{check_bit, BitState};
+
 use super::{
     command_set::CommandSet, full_command::FullCommand, pins::PinsCrateLevelAPI, LCDBasic,
     PinsInteraction, LCD,
@@ -25,6 +27,9 @@ impl PinsInteraction for LCD {
     fn check_busy(&mut self) -> bool {
         let busy_state = self.pins.send(CommandSet::ReadBusyFlagAndAddress).unwrap();
 
-        busy_state.checked_shr(7).unwrap() & 1 == 1
+        match check_bit(busy_state, 7) {
+            BitState::Clear => false,
+            BitState::Set => true,
+        }
     }
 }

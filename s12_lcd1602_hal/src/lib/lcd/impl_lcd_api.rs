@@ -107,12 +107,11 @@ impl LCDBasic for LCD {
     fn draw_graph_to_cgram(&mut self, index: u8, graph_data: [u8; 8]) {
         assert!(index < 8, "Only 8 graphs allowed in CGRAM");
 
-        for line in graph_data {
-            assert!(
-                line < 2u8.pow(5),
-                "Only lower 5 bits use to construct display"
-            );
-        }
+        // 所有的行，设置为 1 的位，都应仅限于低 4 位
+        assert!(
+            graph_data.iter().all(|&line| line < 2u8.pow(5)),
+            "Only lower 5 bits use to construct display"
+        );
 
         // 有一个问题是，如果写入方向是从右到左，那么这里需要临时调整一下方向
         // 调整为从左到右，这样我们绘制字符的时候，就是从上到下绘制
@@ -126,9 +125,9 @@ impl LCDBasic for LCD {
 
         // 注意 AC 在 CGRAM 里也是会自增的，因此不需要每一步都设置位置
         self.set_cgram_addr(cgram_data_addr_start as u8);
-        for line_data in graph_data {
+        graph_data.iter().for_each(|&line_data| {
             self.wait_and_send(CommandSet::WriteDataToRAM(line_data));
-        }
+        });
 
         // 最后我们检查一下书写方向是否被翻转，
         // 如果被翻转表示原始书写的方向为从右向左，记得需要翻转回去
