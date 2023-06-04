@@ -8,9 +8,9 @@ use super::{
     LCDBasic, PinsInteraction, LCD,
 };
 
-impl PinsInteraction for LCD {
-    fn delay_and_send(&mut self, command: impl Into<FullCommand>, delay_ms: u32) -> Option<u8> {
-        self.delayer.delay_us(delay_ms);
+impl<const PIN_CNT: usize> PinsInteraction for LCD<PIN_CNT> {
+    fn delay_and_send(&mut self, command: impl Into<FullCommand>, delay_us: u32) -> Option<u8> {
+        self.delayer.delay_us(delay_us);
         self.pins.send(command.into())
     }
 

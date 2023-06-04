@@ -5,7 +5,7 @@ use super::{
     LCDBasic, LCDExt, PinsInteraction, LCD,
 };
 
-impl LCDExt for LCD {
+impl<const PIN_CNT: usize> LCDExt for LCD<PIN_CNT> {
     fn toggle_display(&mut self) {
         match self.get_display_state() {
             State::Off => self.set_display_state(State::On),

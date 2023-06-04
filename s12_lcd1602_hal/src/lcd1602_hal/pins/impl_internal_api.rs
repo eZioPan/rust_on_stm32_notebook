@@ -2,8 +2,8 @@ use crate::utils::{BitOps, BitState};
 
 use super::{Pins, PinsInternalAPI};
 
-impl PinsInternalAPI for Pins {
-    fn push_4_bits(&mut self, raw_bits: u8) {
+impl<const PIN_CNT: usize> PinsInternalAPI for Pins<PIN_CNT> {
+    fn push_bits(&mut self, raw_bits: u8) {
         self.db_pins
             .iter_mut()
             .enumerate()
@@ -13,7 +13,7 @@ impl PinsInternalAPI for Pins {
             });
     }
 
-    fn fetch_4_bits(&mut self) -> u8 {
+    fn fetch_bits(&mut self) -> u8 {
         self.db_pins
             .iter_mut()
             .enumerate()

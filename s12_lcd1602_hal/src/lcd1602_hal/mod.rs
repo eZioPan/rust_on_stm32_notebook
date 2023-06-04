@@ -19,8 +19,8 @@ mod impl_struct_api;
 pub mod pins;
 pub(crate) mod utils;
 
-pub struct LCD {
-    pins: Pins,
+pub struct LCD<const PIN_CNT: usize> {
+    pins: Pins<PIN_CNT>,
     delayer: SysDelay,
     line: LineMode,
     font: Font,

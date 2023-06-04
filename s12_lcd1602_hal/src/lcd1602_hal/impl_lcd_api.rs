@@ -5,21 +5,41 @@ use super::{
     LCDBasic, PinsInteraction, RAMType, LCD,
 };
 
-impl LCDBasic for LCD {
+impl<const PIN_CNT: usize> LCDBasic for LCD<PIN_CNT> {
     fn init_lcd(&mut self) {
         // 在初始化流程中，我们最好每次都发送“裸指令”
         // 不要使用 LCD 结构体提供的其它方法
-        self.delay_and_send(CommandSet::HalfFunctionSet, 40_000);
 
-        self.delay_and_send(
-            CommandSet::FunctionSet(DataWidth::Bit4, self.get_line_mode(), self.get_font()),
-            40,
-        );
+        // 4 pin 和 8 pin 在初始化的时候，仅有前 3 个 / 2 个 指令不同，其它均一样
+        match PIN_CNT {
+            4 => {
+                self.delay_and_send(CommandSet::HalfFunctionSet, 40_000);
 
-        self.delay_and_send(
-            CommandSet::FunctionSet(DataWidth::Bit4, self.get_line_mode(), self.get_font()),
-            40,
-        );
+                self.delay_and_send(
+                    CommandSet::FunctionSet(DataWidth::Bit4, self.get_line_mode(), self.get_font()),
+                    40,
+                );
+
+                self.delay_and_send(
+                    CommandSet::FunctionSet(DataWidth::Bit4, self.get_line_mode(), self.get_font()),
+                    40,
+                );
+            }
+
+            8 => {
+                self.delay_and_send(
+                    CommandSet::FunctionSet(DataWidth::Bit8, self.get_line_mode(), self.get_font()),
+                    40_000,
+                );
+
+                self.delay_and_send(
+                    CommandSet::FunctionSet(DataWidth::Bit8, self.get_line_mode(), self.get_font()),
+                    40,
+                );
+            }
+
+            _ => panic!("Pins other than 4 and 8 are not supported"),
+        }
 
         self.wait_and_send(CommandSet::DisplayOnOff {
             display: self.get_display_state(),

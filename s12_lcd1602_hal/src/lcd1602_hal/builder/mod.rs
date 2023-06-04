@@ -8,8 +8,8 @@ use super::{
     LCD,
 };
 
-pub struct Builder {
-    pins: Option<Pins>,
+pub struct Builder<const PIN_CNT: usize> {
+    pins: Option<Pins<PIN_CNT>>,
     delayer: Option<SysDelay>,
     line: LineMode,
     font: Font,
@@ -21,10 +21,10 @@ pub struct Builder {
     wait_interval_us: u32,
 }
 
-pub trait BuilderAPI {
-    fn build_and_init(self) -> LCD;
-    fn new(pins: Pins, delayer: SysDelay) -> Self;
-    fn pop_pins(&mut self) -> Pins;
+pub trait BuilderAPI<const PIN_CNT: usize> {
+    fn build_and_init(self) -> LCD<PIN_CNT>;
+    fn new(pins: Pins<PIN_CNT>, delayer: SysDelay) -> Self;
+    fn pop_pins(&mut self) -> Pins<PIN_CNT>;
     fn pop_delayer(&mut self) -> SysDelay;
     fn set_line(self, line: LineMode) -> Self;
     fn get_line(&self) -> LineMode;

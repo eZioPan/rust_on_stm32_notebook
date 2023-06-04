@@ -8,8 +8,8 @@ use crate::{
 
 use super::{Builder, BuilderAPI};
 
-impl BuilderAPI for Builder {
-    fn build_and_init(mut self) -> LCD {
+impl<const PIN_CNT: usize> BuilderAPI<PIN_CNT> for Builder<PIN_CNT> {
+    fn build_and_init(mut self) -> LCD<PIN_CNT> {
         let mut lcd = LCD {
             pins: self.pop_pins(),
             delayer: self.pop_delayer(),
@@ -29,7 +29,7 @@ impl BuilderAPI for Builder {
         lcd
     }
 
-    fn new(pins: Pins, delayer: SysDelay) -> Self {
+    fn new(pins: Pins<PIN_CNT>, delayer: SysDelay) -> Self {
         Self {
             pins: Some(pins),
             delayer: Some(delayer),
@@ -44,7 +44,7 @@ impl BuilderAPI for Builder {
         }
     }
 
-    fn pop_pins(&mut self) -> Pins {
+    fn pop_pins(&mut self) -> Pins<PIN_CNT> {
         self.pins.take().expect("No Pins to pop")
     }
 

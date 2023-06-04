@@ -6,14 +6,14 @@ mod impl_crate_level_api;
 mod impl_internal_api;
 mod impl_pins_api;
 
-pub struct Pins {
+pub struct Pins<const PIN_CNT: usize> {
     rs_pin: ErasedPin<Output>,
     rw_pin: ErasedPin<Output>,
     en_pin: ErasedPin<Output>,
-    db_pins: [ErasedPin<Output<OpenDrain>>; 4],
+    db_pins: [ErasedPin<Output<OpenDrain>>; PIN_CNT],
 }
 
-pub trait PinsAPI {
+pub trait FourPinsAPI {
     fn new<PullPushPin, OpenDrainPin>(
         rs: PullPushPin,
         rw: PullPushPin,
@@ -28,9 +28,28 @@ pub trait PinsAPI {
         OpenDrainPin: Into<ErasedPin<Output<OpenDrain>>>;
 }
 
+pub trait EightPinsAPI {
+    fn new<PullPushPin, OpenDrainPin>(
+        rs: PullPushPin,
+        rw: PullPushPin,
+        en: PullPushPin,
+        db0: OpenDrainPin,
+        db1: OpenDrainPin,
+        db2: OpenDrainPin,
+        db3: OpenDrainPin,
+        db4: OpenDrainPin,
+        db5: OpenDrainPin,
+        db6: OpenDrainPin,
+        db7: OpenDrainPin,
+    ) -> Self
+    where
+        PullPushPin: Into<ErasedPin<Output>>,
+        OpenDrainPin: Into<ErasedPin<Output<OpenDrain>>>;
+}
+
 trait PinsInternalAPI {
-    fn push_4_bits(&mut self, raw_bits: u8);
-    fn fetch_4_bits(&mut self) -> u8;
+    fn push_bits(&mut self, raw_bits: u8);
+    fn fetch_bits(&mut self) -> u8;
 }
 
 pub(super) trait PinsCrateLevelAPI {

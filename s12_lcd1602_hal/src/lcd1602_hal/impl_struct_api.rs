@@ -5,7 +5,7 @@ use super::{
     RAMType, StructAPI, LCD,
 };
 
-impl StructAPI for LCD {
+impl<const PIN_CNT: usize> StructAPI for LCD<PIN_CNT> {
     fn internal_set_line_mode(&mut self, line: LineMode) {
         assert!(
             (self.get_font() == Font::Font5x11) && (line == LineMode::OneLine),

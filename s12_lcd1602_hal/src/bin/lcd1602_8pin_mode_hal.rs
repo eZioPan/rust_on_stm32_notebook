@@ -29,7 +29,7 @@ use stm32f4xx_hal::{pac, prelude::*};
 use lcd1602_hal::{
     builder::{Builder, BuilderAPI},
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
-    pins::{FourPinsAPI, Pins},
+    pins::{EightPinsAPI, Pins},
     LCDAnimation, LCDBasic, LCDExt, MoveType,
 };
 
@@ -80,7 +80,36 @@ fn main() -> ! {
         .internal_pull_up(true)
         .erase();
 
-    let lcd_pins = Pins::new(rs_pin, rw_pin, en_pin, db4_pin, db5_pin, db6_pin, db7_pin);
+    let gpioc = dp.GPIOC.split();
+
+    let db0_pin = gpioc
+        .pc0
+        .into_open_drain_output()
+        .internal_pull_up(true)
+        .erase();
+
+    let db1_pin = gpioc
+        .pc1
+        .into_open_drain_output()
+        .internal_pull_up(true)
+        .erase();
+
+    let db2_pin = gpioc
+        .pc2
+        .into_open_drain_output()
+        .internal_pull_up(true)
+        .erase();
+
+    let db3_pin = gpioc
+        .pc3
+        .into_open_drain_output()
+        .internal_pull_up(true)
+        .erase();
+
+    let lcd_pins = Pins::new(
+        rs_pin, rw_pin, en_pin, db0_pin, db1_pin, db2_pin, db3_pin, db4_pin, db5_pin, db6_pin,
+        db7_pin,
+    );
 
     let lcd_builder = Builder::new(lcd_pins, delayer)
         .set_blink(State::On)

@@ -4,7 +4,7 @@ use super::{
 };
 use embedded_hal::blocking::delay::{DelayMs, DelayUs};
 
-impl LCDAnimation for LCD {
+impl<const PIN_CNT: usize> LCDAnimation for LCD<PIN_CNT> {
     /// 以特定的时间间隔，切换整个屏幕特定次数
     /// 当 count 为 0 时，永续切换屏幕
     fn full_display_blink(&mut self, count: u32, interval_us: u32) {
