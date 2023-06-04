@@ -7,7 +7,7 @@
 //!
 //! LCD <-> STM32
 //! Vss <-> GND
-//! Vdd <-> 5V
+//! Vdd <-> 5V（这个 5V 最好直接来源于外部，比如 DAPLink 的 5V 输出，或者 USB，使用核心板上 3.3V 升压到 5V 的电流其实不够用）
 //! V0 <-> 可变电阻 <-> 5V（调节显示对比度）
 //! RS <-> PA0
 //! RW <-> PA1
@@ -26,7 +26,7 @@ use panic_rtt_target as _;
 use rtt_target::rtt_init_print;
 use stm32f4xx_hal::{pac, prelude::*};
 
-use lcd1602::lcd::{
+use lcd1602_hal::{
     builder::{Builder, BuilderAPI},
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::{Pins, PinsAPI},
@@ -100,7 +100,7 @@ fn main() -> ! {
 
     lcd.typewriter_write("hello, world! ~", 250_000); // 这里故意追加了一个波浪线，应该被映射为全亮方块
 
-    lcd.delay_ms(250u32);
+    lcd.delay_ms(250);
     lcd.set_cursor_pos((39, 0)); // 这里故意设置到第一行的末尾，测试换行功能是否正常
     lcd.write_char_to_cur('|'); // 让后我们在第一行的行尾写入一个竖线
 
@@ -125,7 +125,7 @@ fn main() -> ! {
     lcd.shift_display_to_pos(0, MoveType::Shortest, State::On, 250_000);
 
     // 让后让整个屏幕闪烁三次
-    lcd.delay_ms(1_000u32);
+    lcd.delay_ms(1_000);
     lcd.full_display_blink(3, 500_000);
 
     loop {}

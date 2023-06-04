@@ -1,6 +1,6 @@
 use stm32f4xx_hal::gpio::{ErasedPin, OpenDrain, Output};
 
-use crate::lcd::full_command::FullCommand;
+use crate::full_command::FullCommand;
 
 mod impl_crate_level_api;
 mod impl_internal_api;

@@ -1,4 +1,4 @@
-use crate::utils::{check_bit, clear_bit, set_bit, BitState};
+use crate::utils::{BitOps, BitState};
 
 use super::{Pins, PinsInternalAPI};
 
@@ -7,7 +7,7 @@ impl PinsInternalAPI for Pins {
         self.db_pins
             .iter_mut()
             .enumerate()
-            .for_each(|(index, pin)| match check_bit(raw_bits, index as u8) {
+            .for_each(|(index, pin)| match raw_bits.check_bit(index as u8) {
                 BitState::Set => pin.set_high(),
                 BitState::Clear => pin.set_low(),
             });
@@ -25,8 +25,8 @@ impl PinsInternalAPI for Pins {
                 // .get_state() 返回的是该引脚被软件设置的状态，对应的是 .is_set_high() 和 .is_set_low() 函数
                 // 这里只能用 .is_high() 或 .is_low() 来读取开漏脚监测到的外部电平
                 match pin.is_low() {
-                    false => set_bit(&mut acc, index as u8),
-                    true => clear_bit(&mut acc, index as u8),
+                    false => acc.set_bit(index as u8),
+                    true => acc.clear_bit(index as u8),
                 }
                 acc
             })

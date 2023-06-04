@@ -7,8 +7,8 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "lcd1602"
-path = "src/lib/lib.rs"
+name = "lcd1602_hal"
+path = "src/lcd1602_hal/mod.rs"
 
 [dependencies]
 

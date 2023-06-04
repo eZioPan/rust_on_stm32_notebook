@@ -1,6 +1,6 @@
 use crate::{
-    lcd::command_set::{CommandSet, DataWidth, Font, LineMode, MoveDirection, ShiftType, State},
-    utils::{clear_bit, set_bit},
+    command_set::{CommandSet, DataWidth, Font, LineMode, MoveDirection, ShiftType, State},
+    utils::BitOps,
 };
 
 use super::{Bits, FullCommand, FullCommandAPI, ReadWriteOp, RegisterSelection};
@@ -30,13 +30,13 @@ impl From<CommandSet> for FullCommand {
                 let mut raw_bits: u8 = 0b0000_0100;
 
                 match dir {
-                    MoveDirection::RightToLeft => clear_bit(&mut raw_bits, 1),
-                    MoveDirection::LeftToRight => set_bit(&mut raw_bits, 1),
+                    MoveDirection::RightToLeft => raw_bits.clear_bit(1),
+                    MoveDirection::LeftToRight => raw_bits.set_bit(1),
                 }
 
                 match st {
-                    ShiftType::CursorOnly => clear_bit(&mut raw_bits, 0),
-                    ShiftType::CursorAndDisplay => set_bit(&mut raw_bits, 0),
+                    ShiftType::CursorOnly => raw_bits.clear_bit(0),
+                    ShiftType::CursorAndDisplay => raw_bits.set_bit(0),
                 }
 
                 Self::new(
@@ -54,16 +54,16 @@ impl From<CommandSet> for FullCommand {
                 let mut raw_bits = 0b0000_1000;
 
                 match display {
-                    State::Off => clear_bit(&mut raw_bits, 2),
-                    State::On => set_bit(&mut raw_bits, 2),
+                    State::Off => raw_bits.clear_bit(2),
+                    State::On => raw_bits.set_bit(2),
                 }
                 match cursor {
-                    State::Off => clear_bit(&mut raw_bits, 1),
-                    State::On => set_bit(&mut raw_bits, 1),
+                    State::Off => raw_bits.clear_bit(1),
+                    State::On => raw_bits.set_bit(1),
                 }
                 match cursor_blink {
-                    State::Off => clear_bit(&mut raw_bits, 0),
-                    State::On => set_bit(&mut raw_bits, 0),
+                    State::Off => raw_bits.clear_bit(0),
+                    State::On => raw_bits.set_bit(0),
                 }
 
                 Self::new(
@@ -77,13 +77,13 @@ impl From<CommandSet> for FullCommand {
                 let mut raw_bits = 0b0001_0000;
 
                 match st {
-                    ShiftType::CursorOnly => clear_bit(&mut raw_bits, 3),
-                    ShiftType::CursorAndDisplay => set_bit(&mut raw_bits, 3),
+                    ShiftType::CursorOnly => raw_bits.clear_bit(3),
+                    ShiftType::CursorAndDisplay => raw_bits.set_bit(3),
                 }
 
                 match dir {
-                    MoveDirection::RightToLeft => clear_bit(&mut raw_bits, 2),
-                    MoveDirection::LeftToRight => set_bit(&mut raw_bits, 2),
+                    MoveDirection::RightToLeft => raw_bits.clear_bit(2),
+                    MoveDirection::LeftToRight => raw_bits.set_bit(2),
                 }
 
                 Self::new(
@@ -103,18 +103,18 @@ impl From<CommandSet> for FullCommand {
                 let mut raw_bits = 0b0010_0000;
 
                 match width {
-                    DataWidth::Bit4 => clear_bit(&mut raw_bits, 4),
-                    DataWidth::Bit8 => set_bit(&mut raw_bits, 4),
+                    DataWidth::Bit4 => raw_bits.clear_bit(4),
+                    DataWidth::Bit8 => raw_bits.set_bit(4),
                 }
 
                 match line {
-                    LineMode::OneLine => clear_bit(&mut raw_bits, 3),
-                    LineMode::TwoLine => set_bit(&mut raw_bits, 3),
+                    LineMode::OneLine => raw_bits.clear_bit(3),
+                    LineMode::TwoLine => raw_bits.set_bit(3),
                 }
 
                 match font {
-                    Font::Font5x8 => clear_bit(&mut raw_bits, 2),
-                    Font::Font5x11 => set_bit(&mut raw_bits, 2),
+                    Font::Font5x8 => raw_bits.clear_bit(2),
+                    Font::Font5x11 => raw_bits.set_bit(2),
                 }
 
                 Self::new(

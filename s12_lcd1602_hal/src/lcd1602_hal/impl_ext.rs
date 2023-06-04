@@ -1,4 +1,4 @@
-use crate::lcd::RAMType;
+use crate::RAMType;
 
 use super::{
     command_set::{CommandSet, State},

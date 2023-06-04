@@ -1,4 +1,4 @@
-use crate::lcd::full_command::{Bits, FullCommand, FullCommandAPI, ReadWriteOp, RegisterSelection};
+use crate::full_command::{Bits, FullCommand, FullCommandAPI, ReadWriteOp, RegisterSelection};
 
 use super::{Pins, PinsCrateLevelAPI, PinsInternalAPI};
 

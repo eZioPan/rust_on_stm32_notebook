@@ -201,10 +201,14 @@ impl LCDAnimation for LCD {
     }
 
     fn delay_ms(&mut self, ms: u32) {
-        self.delayer.delay_ms(ms);
+        if ms > 0 {
+            self.delayer.delay_ms(ms);
+        }
     }
 
     fn delay_us(&mut self, us: u32) {
-        self.delayer.delay_us(us);
+        if us > 0 {
+            self.delayer.delay_us(us);
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::lcd::StructAPI;
+use crate::StructAPI;
 
 use super::{
     command_set::{CommandSet, DataWidth, Font, LineMode, MoveDirection, ShiftType, State},
@@ -143,8 +143,8 @@ impl LCDBasic for LCD {
         self.internal_set_line_mode(line);
         self.wait_and_send(CommandSet::FunctionSet(
             DataWidth::Bit4,
-            self.line,
-            self.font,
+            self.get_line_mode(),
+            self.get_font(),
         ));
     }
 
@@ -156,8 +156,8 @@ impl LCDBasic for LCD {
         self.internal_set_font(font);
         self.wait_and_send(CommandSet::FunctionSet(
             DataWidth::Bit4,
-            self.line,
-            self.font,
+            self.get_line_mode(),
+            self.get_font(),
         ));
     }
 
@@ -168,9 +168,9 @@ impl LCDBasic for LCD {
     fn set_display_state(&mut self, display: State) {
         self.internal_set_display_state(display);
         self.wait_and_send(CommandSet::DisplayOnOff {
-            display: self.display_on,
-            cursor: self.cursor_on,
-            cursor_blink: self.cursor_blink,
+            display: self.get_display_state(),
+            cursor: self.get_cursor_state(),
+            cursor_blink: self.get_cursor_blink_state(),
         });
     }
 
@@ -181,9 +181,9 @@ impl LCDBasic for LCD {
     fn set_cursor_state(&mut self, cursor: State) {
         self.internal_set_cursor_state(cursor);
         self.wait_and_send(CommandSet::DisplayOnOff {
-            display: self.display_on,
-            cursor: self.cursor_on,
-            cursor_blink: self.cursor_blink,
+            display: self.get_display_state(),
+            cursor: self.get_cursor_state(),
+            cursor_blink: self.get_cursor_blink_state(),
         });
     }
 
@@ -194,9 +194,9 @@ impl LCDBasic for LCD {
     fn set_cursor_blink_state(&mut self, blink: State) {
         self.internal_set_cursor_blink(blink);
         self.wait_and_send(CommandSet::DisplayOnOff {
-            display: self.display_on,
-            cursor: self.cursor_on,
-            cursor_blink: self.cursor_blink,
+            display: self.get_display_state(),
+            cursor: self.get_cursor_state(),
+            cursor_blink: self.get_cursor_blink_state(),
         });
     }
 
@@ -206,7 +206,10 @@ impl LCDBasic for LCD {
 
     fn set_default_direction(&mut self, dir: MoveDirection) {
         self.internal_set_direction(dir);
-        self.wait_and_send(CommandSet::EntryModeSet(self.direction, self.shift_type));
+        self.wait_and_send(CommandSet::EntryModeSet(
+            self.get_default_direction(),
+            self.get_default_shift_type(),
+        ));
     }
 
     fn get_default_direction(&self) -> MoveDirection {
@@ -215,7 +218,10 @@ impl LCDBasic for LCD {
 
     fn set_default_shift_type(&mut self, shift: ShiftType) {
         self.internal_set_shift(shift);
-        self.wait_and_send(CommandSet::EntryModeSet(self.direction, self.shift_type));
+        self.wait_and_send(CommandSet::EntryModeSet(
+            self.get_default_direction(),
+            self.get_default_shift_type(),
+        ));
     }
 
     fn get_default_shift_type(&self) -> ShiftType {

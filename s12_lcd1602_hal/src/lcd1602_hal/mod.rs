@@ -1,3 +1,5 @@
+#![no_std]
+
 use stm32f4xx_hal::timer::SysDelay;
 
 use self::{
@@ -15,6 +17,7 @@ mod impl_lcd_api;
 mod impl_pin_interaction;
 mod impl_struct_api;
 pub mod pins;
+pub(crate) mod utils;
 
 pub struct LCD {
     pins: Pins,

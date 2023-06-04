@@ -1,6 +1,6 @@
 use stm32f4xx_hal::timer::SysDelay;
 
-use crate::lcd::{
+use crate::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::Pins,
     LCDBasic, RAMType, LCD,
