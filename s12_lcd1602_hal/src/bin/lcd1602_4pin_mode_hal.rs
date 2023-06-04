@@ -30,7 +30,7 @@ use lcd1602::lcd::{
     builder::{Builder, BuilderAPI},
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::{Pins, PinsAPI},
-    LCDAnimation, LCDBasic, LCDExt,
+    LCDAnimation, LCDBasic, LCDExt, MoveType,
 };
 
 #[cortex_m_rt::entry]
@@ -102,6 +102,7 @@ fn main() -> ! {
 
     lcd.delay_ms(250u32);
     lcd.set_cursor_pos((39, 0)); // 这里故意设置到第一行的末尾，测试换行功能是否正常
+    lcd.write_char_to_cur('|'); // 让后我们在第一行的行尾写入一个竖线
 
     lcd.set_cursor_blink_state(State::Off);
 
@@ -113,15 +114,15 @@ fn main() -> ! {
     lcd.delay_ms(1_000u32);
     lcd.write_custom_char_to_pos(1, (15, 0));
 
+    // 偷偷在 DDRAM 的末尾写上一个竖线
+    lcd.write_char_to_pos('|', (39, 1));
+
     // 挪动一下屏幕
-    lcd.delay_ms(1_000u32);
-    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::LeftToRight);
-    lcd.delay_ms(1_000u32);
-    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::RightToLeft);
-    lcd.delay_ms(1_000u32);
-    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::RightToLeft);
-    lcd.delay_ms(1_000u32);
-    lcd.shift_cursor_or_display(ShiftType::CursorAndDisplay, MoveDirection::LeftToRight);
+    lcd.shift_display_to_pos(2, MoveType::Shortest, State::On, 250_000);
+    lcd.delay_ms(1_000);
+    lcd.shift_display_to_pos(40 - 2, MoveType::Shortest, State::On, 250_000);
+    lcd.delay_ms(1_000);
+    lcd.shift_display_to_pos(0, MoveType::Shortest, State::On, 250_000);
 
     // 让后让整个屏幕闪烁三次
     lcd.delay_ms(1_000u32);

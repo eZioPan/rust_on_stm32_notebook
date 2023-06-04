@@ -38,25 +38,40 @@ pub enum RAMType {
     CGRAM,
 }
 
+pub enum MoveType {
+    ForceMoveLeft,
+    ForceMoveRight,
+    NoCrossBoundary,
+    Shortest,
+}
+
 pub trait LCDAnimation {
     fn full_display_blink(&mut self, count: u32, change_interval_us: u32);
     fn typewriter_write(&mut self, str: &str, extra_delay_us: u32);
+    fn shift_display_to_pos(
+        &mut self,
+        target_offset: u8,
+        mt: MoveType,
+        display_state_when_shift: State,
+        delay_us_per_step: u32,
+    );
     fn delay_ms(&mut self, ms: u32);
     fn delay_us(&mut self, us: u32);
 }
 
 pub trait LCDExt {
     fn toggle_display(&mut self);
-    fn write_char(&mut self, char: char);
+    fn write_char_to_cur(&mut self, char: char);
     fn write_str(&mut self, str: &str);
-    fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8));
+    fn write_u8_to_pos(&mut self, byte: impl Into<u8>, pos: (u8, u8));
+    fn write_char_to_pos(&mut self, char: char, pos: (u8, u8));
     fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8));
     fn extract_graph_from_cgram(&mut self, index: u8) -> [u8; 8];
 }
 
 pub trait LCDBasic {
     fn init_lcd(&mut self);
-    fn write_u8_to_cur(&mut self, character: impl Into<u8>);
+    fn write_u8_to_cur(&mut self, byte: impl Into<u8>);
     fn read_u8_from_cur(&mut self) -> u8;
     fn draw_graph_to_cgram(&mut self, index: u8, graph: [u8; 8]);
     fn write_custom_char_to_cur(&mut self, index: u8);

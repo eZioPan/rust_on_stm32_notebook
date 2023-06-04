@@ -1,4 +1,4 @@
-use crate::lcd::{LCDExt, StructAPI};
+use crate::lcd::StructAPI;
 
 use super::{
     command_set::{CommandSet, DataWidth, Font, LineMode, MoveDirection, ShiftType, State},
@@ -56,7 +56,7 @@ impl LCDBasic for LCD {
         self.write_u8_to_cur(index);
     }
 
-    fn write_u8_to_cur(&mut self, character: impl Into<u8>) {
+    fn write_u8_to_cur(&mut self, byte: impl Into<u8>) {
         assert!(
             self.get_ram_type() == RAMType::DDRAM,
             "Current in CGRAM, use .set_cursor_pos() to change to DDRAM"
@@ -66,35 +66,29 @@ impl LCDBasic for LCD {
             unimplemented!("Haven't implement right to left write");
         };
 
-        let cur_pos = self.get_cursor_pos();
+        self.wait_and_send(CommandSet::WriteDataToRAM(byte.into()));
 
+        // 由于 LCD1602 的计数器会自动自增，因此这里只需要更新结构体的计数即可
+        let last_pos = self.get_cursor_pos();
         match self.line {
             LineMode::OneLine => {
-                // 1 行模式比较简单，直接判定 x 是否达到最大值，若已经到达了最大值，就直接报错
-                assert!(cur_pos.0 < 79, "DDRAM Overflow");
-                self.wait_and_send(CommandSet::WriteDataToRAM(character.into()));
-                // 由于 LCD1602 的计数器会自动自增，因此这里只需要更新结构体的计数即可
-                self.internal_set_cursor_pos((cur_pos.0 + 1, 0));
+                // 由于 UT7066U 的内存是循环的，因此到最后一个位置之后，内存的地址是回到原点的
+                if last_pos.0 == 79 {
+                    self.internal_set_cursor_pos((last_pos.0 + 1, 0));
+                } else {
+                    self.internal_set_cursor_pos((0, 0));
+                }
             }
             LineMode::TwoLine => {
-                if cur_pos.0 == 39 {
-                    // 如果显示模式为 2 行，
-                    // 且第一行已经写到了末尾，则转移到下一行开头
-                    // 若是第二行的结尾，就 DDRAM 溢出错误
-                    if cur_pos.1 == 0 {
-                        // 这里比较特殊，由于 LCD1602 的设计，在两行模式下，DDRAM 的内存地址在换行时并不连续
-                        // 因此这里我们需要手动告知 LCD1602 换行后的位置
-                        self.write_u8_to_pos(character.into(), (0, 1));
-                        // 同上，我们只需要更新结构体内部的计数即可
-                        self.internal_set_cursor_pos((1, 1));
+                // 当 ST7066U 到达第一行行尾的时候，会自动移动到下一行开头，写到第二行结尾的时候，会自动移动到第一行开头
+                if last_pos.0 == 39 {
+                    if last_pos.1 == 0 {
+                        self.internal_set_cursor_pos((1, 0));
                     } else {
-                        panic!("DDRAM Overflowed");
+                        self.internal_set_cursor_pos((0, 0));
                     }
                 } else {
-                    // 两行模式的其它情况，直接 x 值 +1 即可
-                    self.wait_and_send(CommandSet::WriteDataToRAM(character.into()));
-                    // 同上，我们只需要更新结构体内部的计数即可
-                    self.internal_set_cursor_pos((cur_pos.0 + 1, cur_pos.1));
+                    self.internal_set_cursor_pos((last_pos.0 + 1, last_pos.1));
                 }
             }
         }

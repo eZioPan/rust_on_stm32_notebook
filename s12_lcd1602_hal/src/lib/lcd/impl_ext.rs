@@ -14,12 +14,12 @@ impl LCDExt for LCD {
     }
 
     fn write_str(&mut self, str: &str) {
-        str.chars().for_each(|char| self.write_char(char));
+        str.chars().for_each(|char| self.write_char_to_cur(char));
     }
 
     /// 这里的字符仅覆盖了如下范围：
     /// ASCII 0x20 到 0x7D
-    fn write_char(&mut self, char: char) {
+    fn write_char_to_cur(&mut self, char: char) {
         assert!(
             self.get_ram_type() == RAMType::DDRAM,
             "Current in CGRAM, use .set_cursor_pos() to change to DDRAM"
@@ -39,9 +39,14 @@ impl LCDExt for LCD {
         self.write_u8_to_pos(index, pos);
     }
 
-    fn write_u8_to_pos(&mut self, character: impl Into<u8>, pos: (u8, u8)) {
+    fn write_u8_to_pos(&mut self, byte: impl Into<u8>, pos: (u8, u8)) {
         self.set_cursor_pos(pos);
-        self.wait_and_send(CommandSet::WriteDataToRAM(character.into()));
+        self.wait_and_send(CommandSet::WriteDataToRAM(byte.into()));
+    }
+
+    fn write_char_to_pos(&mut self, char: char, pos: (u8, u8)) {
+        self.set_cursor_pos(pos);
+        self.write_char_to_cur(char);
     }
 
     fn extract_graph_from_cgram(&mut self, index: u8) -> [u8; 8] {
