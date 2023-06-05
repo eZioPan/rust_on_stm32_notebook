@@ -116,7 +116,12 @@ fn main() -> ! {
 
     lcd.set_cursor_blink_state(State::Off);
 
-    lcd.typewriter_write("hello, LCD1602!~", 250_000);
+    lcd.typewriter_write("hello, ", 250_000);
+
+    // 测试从右至左的写入
+    lcd.set_default_direction(MoveDirection::RightToLeft);
+    lcd.set_cursor_pos((15, 1));
+    lcd.typewriter_write("~!2061DCL", 250_000);
 
     lcd.set_cursor_state(State::Off);
 

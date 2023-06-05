@@ -93,35 +93,53 @@ where
             "Current in CGRAM, use .set_cursor_pos() to change to DDRAM"
         );
 
-        if self.direction == MoveDirection::RightToLeft {
-            unimplemented!("Haven't implement right to left write");
-        };
-
         self.wait_and_send(CommandSet::WriteDataToRAM(byte.into()));
 
         // 由于 LCD1602 的计数器会自动自增，因此这里只需要更新结构体的计数即可
+        // 由于 UT7066U 的内存是循环的，因此到最后一个位置之后，内存的地址是回到原点的
         let last_pos = self.get_cursor_pos();
-        match self.line {
-            LineMode::OneLine => {
-                // 由于 UT7066U 的内存是循环的，因此到最后一个位置之后，内存的地址是回到原点的
-                if last_pos.0 == 79 {
-                    self.internal_set_cursor_pos((last_pos.0 + 1, 0));
-                } else {
-                    self.internal_set_cursor_pos((0, 0));
-                }
-            }
-            LineMode::TwoLine => {
-                // 当 ST7066U 到达第一行行尾的时候，会自动移动到下一行开头，写到第二行结尾的时候，会自动移动到第一行开头
-                if last_pos.0 == 39 {
-                    if last_pos.1 == 0 {
-                        self.internal_set_cursor_pos((1, 0));
+
+        match self.get_default_direction() {
+            MoveDirection::RightToLeft => match self.line {
+                LineMode::OneLine => {
+                    if last_pos.0 == 0 {
+                        self.internal_set_cursor_pos((79, 0));
                     } else {
-                        self.internal_set_cursor_pos((0, 0));
+                        self.internal_set_cursor_pos((last_pos.0 - 1, 0));
                     }
-                } else {
-                    self.internal_set_cursor_pos((last_pos.0 + 1, last_pos.1));
                 }
-            }
+                LineMode::TwoLine => {
+                    if last_pos.0 == 0 {
+                        if last_pos.1 == 1 {
+                            self.internal_set_cursor_pos((39, 0));
+                        } else {
+                            self.internal_set_cursor_pos((39, 1));
+                        }
+                    } else {
+                        self.internal_set_cursor_pos((last_pos.0 - 1, last_pos.1));
+                    }
+                }
+            },
+            MoveDirection::LeftToRight => match self.line {
+                LineMode::OneLine => {
+                    if last_pos.0 == 79 {
+                        self.internal_set_cursor_pos((0, 0));
+                    } else {
+                        self.internal_set_cursor_pos((last_pos.0 + 1, 0));
+                    }
+                }
+                LineMode::TwoLine => {
+                    if last_pos.0 == 39 {
+                        if last_pos.1 == 0 {
+                            self.internal_set_cursor_pos((1, 0));
+                        } else {
+                            self.internal_set_cursor_pos((0, 0));
+                        }
+                    } else {
+                        self.internal_set_cursor_pos((last_pos.0 + 1, last_pos.1));
+                    }
+                }
+            },
         }
     }
 
