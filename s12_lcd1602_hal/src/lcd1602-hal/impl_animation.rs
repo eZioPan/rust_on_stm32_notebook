@@ -75,136 +75,65 @@ where
         // 依照用户的设置，关闭或开启屏幕
         self.set_display_state(display_state_when_shift);
 
-        // TODO: 这里的判定需要简化，目前太复杂了
-        match mt {
+        // 没有必要在这里反复操作设备，这里只需要计算移动的距离和方向即可
+        let (distance, direction) = match mt {
             MoveType::ForceMoveLeft => {
                 if target_offset < before_offset {
-                    (0..(before_offset - target_offset)).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::RightToLeft,
-                        );
-                    });
+                    (before_offset - target_offset, MoveDirection::RightToLeft)
                 } else {
-                    (0..before_offset).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::RightToLeft,
-                        );
-                    });
-                    (target_offset..line_capacity).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::RightToLeft,
-                        );
-                    });
+                    (
+                        line_capacity - (target_offset - before_offset),
+                        MoveDirection::RightToLeft,
+                    )
                 }
             }
 
             MoveType::ForceMoveRight => {
                 if target_offset > before_offset {
-                    (0..(target_offset - before_offset)).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::LeftToRight,
-                        );
-                    });
+                    (target_offset - before_offset, MoveDirection::LeftToRight)
                 } else {
-                    (before_offset..line_capacity).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::LeftToRight,
-                        );
-                    });
-                    (0..target_offset).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::LeftToRight,
-                        );
-                    });
+                    (
+                        line_capacity - (before_offset - target_offset),
+                        MoveDirection::LeftToRight,
+                    )
                 }
             }
 
             MoveType::NoCrossBoundary => {
                 if target_offset > before_offset {
-                    (0..(target_offset - before_offset)).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::LeftToRight,
-                        );
-                    });
+                    (target_offset - before_offset, MoveDirection::LeftToRight)
                 } else {
-                    (0..(before_offset - target_offset)).for_each(|_| {
-                        self.delay_us(delay_us_per_step);
-                        self.shift_cursor_or_display(
-                            ShiftType::CursorAndDisplay,
-                            MoveDirection::RightToLeft,
-                        );
-                    });
+                    (before_offset - target_offset, MoveDirection::RightToLeft)
                 }
             }
 
             MoveType::Shortest => {
                 if target_offset > before_offset {
                     if target_offset - before_offset <= line_capacity / 2 {
-                        (0..(target_offset - before_offset)).for_each(|_| {
-                            self.delay_us(delay_us_per_step);
-                            self.shift_cursor_or_display(
-                                ShiftType::CursorAndDisplay,
-                                MoveDirection::LeftToRight,
-                            );
-                        });
+                        (target_offset - before_offset, MoveDirection::LeftToRight)
                     } else {
-                        (0..before_offset).for_each(|_| {
-                            self.delay_us(delay_us_per_step);
-                            self.shift_cursor_or_display(
-                                ShiftType::CursorAndDisplay,
-                                MoveDirection::RightToLeft,
-                            );
-                        });
-                        (target_offset..line_capacity).for_each(|_| {
-                            self.delay_us(delay_us_per_step);
-                            self.shift_cursor_or_display(
-                                ShiftType::CursorAndDisplay,
-                                MoveDirection::RightToLeft,
-                            );
-                        });
+                        (
+                            line_capacity - (target_offset - before_offset),
+                            MoveDirection::RightToLeft,
+                        )
                     }
                 } else {
                     if before_offset - target_offset <= line_capacity / 2 {
-                        (0..(before_offset - target_offset)).for_each(|_| {
-                            self.delay_us(delay_us_per_step);
-                            self.shift_cursor_or_display(
-                                ShiftType::CursorAndDisplay,
-                                MoveDirection::RightToLeft,
-                            );
-                        });
+                        (before_offset - target_offset, MoveDirection::RightToLeft)
                     } else {
-                        (before_offset..line_capacity).for_each(|_| {
-                            self.delay_us(delay_us_per_step);
-                            self.shift_cursor_or_display(
-                                ShiftType::CursorAndDisplay,
-                                MoveDirection::LeftToRight,
-                            );
-                        });
-                        (0..target_offset).for_each(|_| {
-                            self.delay_us(delay_us_per_step);
-                            self.shift_cursor_or_display(
-                                ShiftType::CursorAndDisplay,
-                                MoveDirection::LeftToRight,
-                            );
-                        });
+                        (
+                            line_capacity - (before_offset - target_offset),
+                            MoveDirection::LeftToRight,
+                        )
                     }
                 }
             }
-        }
+        };
+
+        (0..(distance)).for_each(|_| {
+            self.delay_us(delay_us_per_step);
+            self.shift_cursor_or_display(ShiftType::CursorAndDisplay, direction);
+        });
 
         // 无论上面做了怎样的操作，我们都还原初始的屏幕状态
         self.set_display_state(before_state);
