@@ -56,9 +56,22 @@ pub enum MoveType {
     Shortest,
 }
 
+pub enum FlapType {
+    Sequential,
+    Simultaneous,
+}
+
 pub trait LCDAnimation {
     fn full_display_blink(&mut self, count: u32, change_interval_us: u32);
     fn typewriter_write(&mut self, str: &str, extra_delay_us: u32);
+    fn split_flap_write(
+        &mut self,
+        str: &str,
+        ft: FlapType,
+        max_flap_cnt: u8,
+        per_flap_delay_us: u32,
+        per_char_flap_delay_us: Option<u32>,
+    );
     fn shift_display_to_pos(
         &mut self,
         target_offset: u8,

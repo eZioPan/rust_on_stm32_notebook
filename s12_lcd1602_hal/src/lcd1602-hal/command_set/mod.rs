@@ -35,7 +35,7 @@ pub enum ShiftType {
     CursorAndDisplay,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, PartialEq, Default)]
 pub enum State {
     Off,
     #[default]

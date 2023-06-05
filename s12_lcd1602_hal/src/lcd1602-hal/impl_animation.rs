@@ -5,7 +5,7 @@ use embedded_hal::{
 
 use super::{
     command_set::{LineMode, MoveDirection, ShiftType, State},
-    LCDAnimation, LCDBasic, LCDExt, MoveType, LCD,
+    FlapType, LCDAnimation, LCDBasic, LCDExt, MoveType, LCD,
 };
 
 impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> LCDAnimation
@@ -37,6 +37,73 @@ where
             self.delay_us(extra_delay_us);
             self.write_char_to_cur(char);
         })
+    }
+
+    fn split_flap_write(
+        &mut self,
+        str: &str,
+        ft: FlapType,
+        max_flap_count: u8,
+        per_flap_delay_us: u32,
+        per_char_delay_us: Option<u32>,
+    ) {
+        // 首先要检查的是，输入的字符串中的每个字符，是否能适合产生翻页效果（应该在 ASCII 0x20 到 0x7D 的区间）
+        let test_result = str.chars().all(|char| {
+            if char.is_ascii() && (0x20 <= char as u8) && (char as u8 <= 0x7D) {
+                true
+            } else {
+                false
+            }
+        });
+
+        assert!(test_result, "Currently only support ASCII 0x20 to 0x7D");
+
+        let mut cursor_state_changed = false;
+
+        // 如果显示光标，则光标总是会出现在下一个字符的位置，这里需要关掉
+        if self.get_cursor_state() != State::Off {
+            self.set_cursor_state(State::Off);
+            cursor_state_changed = true;
+        }
+
+        match ft {
+            FlapType::Sequential => {
+                assert!(
+                    per_char_delay_us.is_some(),
+                    "Should set some per char delay in Sequential Mode"
+                );
+                str.chars().for_each(|char| {
+                    let cur_byte = char as u8;
+
+                    let flap_start_byte = if max_flap_count == 0 || cur_byte - max_flap_count < 0x20
+                    {
+                        0x20
+                    } else {
+                        cur_byte - max_flap_count
+                    };
+
+                    let cur_pos = self.get_cursor_pos();
+
+                    self.delay_us(per_char_delay_us.unwrap());
+                    (flap_start_byte..=cur_byte).for_each(|byte| {
+                        self.delay_us(per_flap_delay_us);
+                        self.write_u8_to_pos(byte, cur_pos);
+                    });
+
+                    self.shift_cursor_or_display(
+                        ShiftType::CursorOnly,
+                        self.get_default_direction(),
+                    );
+                })
+            }
+            FlapType::Simultaneous => {
+                unimplemented!()
+            }
+        }
+
+        if cursor_state_changed {
+            self.set_cursor_state(State::On);
+        }
     }
 
     fn shift_display_to_pos(

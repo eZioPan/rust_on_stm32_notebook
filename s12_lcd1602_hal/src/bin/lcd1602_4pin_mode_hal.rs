@@ -31,7 +31,7 @@ use lcd1602_hal::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::{FourPinsAPI, Pins},
     utils::BitOps,
-    LCDAnimation, LCDBasic, LCDExt, MoveType,
+    FlapType, LCDAnimation, LCDBasic, LCDExt, MoveType,
 };
 
 #[cortex_m_rt::entry]
@@ -121,7 +121,8 @@ fn main() -> ! {
     // 测试从右至左的写入
     lcd.set_default_direction(MoveDirection::RightToLeft);
     lcd.set_cursor_pos((15, 1));
-    lcd.typewriter_write("~!2061DCL", 250_000);
+    lcd.typewriter_write("~", 250_000);
+    lcd.split_flap_write("!2061DCL", FlapType::Sequential, 10, 100_000, Some(250_000));
 
     lcd.set_cursor_state(State::Off);
 
