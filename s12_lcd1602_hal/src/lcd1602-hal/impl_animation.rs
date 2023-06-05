@@ -48,13 +48,9 @@ where
         per_char_delay_us: Option<u32>,
     ) {
         // 首先要检查的是，输入的字符串中的每个字符，是否能适合产生翻页效果（应该在 ASCII 0x20 到 0x7D 的区间）
-        let test_result = str.chars().all(|char| {
-            if char.is_ascii() && (0x20 <= char as u8) && (char as u8 <= 0x7D) {
-                true
-            } else {
-                false
-            }
-        });
+        let test_result = str
+            .chars()
+            .all(|char| char.is_ascii() && (0x20 <= char as u8) && (char as u8 <= 0x7D));
 
         assert!(test_result, "Currently only support ASCII 0x20 to 0x7D");
 
@@ -97,7 +93,37 @@ where
                 })
             }
             FlapType::Simultaneous => {
-                unimplemented!()
+                let min_char_byte = str.chars().min().unwrap() as u8;
+                let max_char_byte = str.chars().max().unwrap() as u8;
+
+                let flap_start_byte = if max_flap_count == 0 {
+                    0x20
+                } else if max_char_byte - min_char_byte > max_flap_count {
+                    min_char_byte
+                } else if max_char_byte - max_flap_count < 0x20 {
+                    0x20
+                } else {
+                    max_char_byte - max_flap_count
+                };
+
+                let cur_pos = self.get_cursor_pos();
+
+                (flap_start_byte..=max_char_byte).for_each(|cur_byte| {
+                    self.delay_us(per_flap_delay_us);
+                    str.chars().for_each(|target_char| {
+                        if cur_byte <= target_char as u8 {
+                            self.write_u8_to_cur(cur_byte);
+                        } else {
+                            self.shift_cursor_or_display(
+                                ShiftType::CursorOnly,
+                                self.get_default_direction(),
+                            )
+                        };
+                    });
+                    if cur_byte < max_char_byte {
+                        self.set_cursor_pos(cur_pos);
+                    }
+                });
             }
         }
 

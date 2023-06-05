@@ -31,7 +31,7 @@ use lcd1602_hal::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::{EightPinsAPI, Pins},
     utils::BitOps,
-    LCDAnimation, LCDBasic, LCDExt, MoveType,
+    FlapType, LCDAnimation, LCDBasic, LCDExt, MoveType,
 };
 
 #[cortex_m_rt::entry]
@@ -128,11 +128,10 @@ fn main() -> ! {
     lcd.write_graph_to_cgram(1, &HEART);
 
     // 测试读取 CGRAM 的功能
+    // 修改心形图案为菱形,并存储到另一个位置上
     let mut graph_data = lcd.read_graph_from_cgram(1);
-    // 修改心形图案为菱形
     graph_data[1].set_bit(2);
     graph_data[2].set_bit(2);
-    // 并存储到另一个位置上
     lcd.write_graph_to_cgram(2, &graph_data);
 
     lcd.set_cursor_pos((1, 0)); // 这里我们故意向右偏移了一个字符，测试偏移功能是否正常
@@ -145,7 +144,15 @@ fn main() -> ! {
 
     lcd.set_cursor_blink_state(State::Off);
 
-    lcd.typewriter_write("hello, LCD1602!~", 250_000);
+    lcd.typewriter_write("hello, ", 250_000);
+
+    // 测试从右至左的写入
+    lcd.set_default_direction(MoveDirection::RightToLeft);
+    lcd.set_cursor_pos((15, 1));
+    lcd.typewriter_write("~!", 250_000);
+    // 测试两种滚动写入
+    lcd.split_flap_write("2061", FlapType::Simultaneous, 0, 150_000, None);
+    lcd.split_flap_write("DCL", FlapType::Sequential, 10, 150_000, Some(250_000));
 
     lcd.set_cursor_state(State::Off);
 
