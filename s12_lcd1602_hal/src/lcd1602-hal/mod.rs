@@ -20,7 +20,7 @@ mod impl_lcd_api;
 mod impl_pin_interaction;
 mod impl_struct_api;
 pub mod pins;
-pub(crate) mod utils;
+pub mod utils;
 
 pub struct LCD<ControlPin, DBPin, const PIN_CNT: usize, Delayer>
 where
@@ -75,17 +75,18 @@ pub trait LCDExt {
     fn write_char_to_cur(&mut self, char: char);
     fn write_str(&mut self, str: &str);
     fn write_u8_to_pos(&mut self, byte: impl Into<u8>, pos: (u8, u8));
+    fn read_u8_from_pos(&mut self, pos: (u8, u8)) -> u8;
     fn write_char_to_pos(&mut self, char: char, pos: (u8, u8));
-    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8));
-    fn extract_graph_from_cgram(&mut self, index: u8) -> [u8; 8];
+    fn write_graph_to_pos(&mut self, index: u8, pos: (u8, u8));
+    fn read_graph_from_cgram(&mut self, index: u8) -> [u8; 8];
 }
 
 pub trait LCDBasic {
     fn init_lcd(&mut self);
     fn write_u8_to_cur(&mut self, byte: impl Into<u8>);
     fn read_u8_from_cur(&mut self) -> u8;
-    fn draw_graph_to_cgram(&mut self, index: u8, graph: [u8; 8]);
-    fn write_custom_char_to_cur(&mut self, index: u8);
+    fn write_graph_to_cgram(&mut self, index: u8, graph: &[u8; 8]);
+    fn write_graph_to_cur(&mut self, index: u8);
     fn clean_display(&mut self);
     fn return_home(&mut self);
     fn set_line_mode(&mut self, line: LineMode);

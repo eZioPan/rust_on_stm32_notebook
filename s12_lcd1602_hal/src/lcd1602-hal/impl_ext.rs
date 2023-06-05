@@ -45,7 +45,7 @@ where
         self.write_u8_to_cur(out_byte);
     }
 
-    fn write_custom_char_to_pos(&mut self, index: u8, pos: (u8, u8)) {
+    fn write_graph_to_pos(&mut self, index: u8, pos: (u8, u8)) {
         assert!(index < 8, "Only 8 graphs allowed in CGRAM");
         self.write_u8_to_pos(index, pos);
     }
@@ -60,7 +60,15 @@ where
         self.write_char_to_cur(char);
     }
 
-    fn extract_graph_from_cgram(&mut self, index: u8) -> [u8; 8] {
+    fn read_u8_from_pos(&mut self, pos: (u8, u8)) -> u8 {
+        let original_pos = self.get_cursor_pos();
+        self.set_cursor_pos(pos);
+        let data = self.read_u8_from_cur();
+        self.set_cursor_pos(original_pos);
+        data
+    }
+
+    fn read_graph_from_cgram(&mut self, index: u8) -> [u8; 8] {
         assert!(index < 8, "index too big, should less than 8");
 
         // 将 index 偏移为 CGRAM 中的地址

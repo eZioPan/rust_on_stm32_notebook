@@ -82,7 +82,7 @@ where
         self.wait_and_send(CommandSet::SetCGRAM(addr));
     }
 
-    fn write_custom_char_to_cur(&mut self, index: u8) {
+    fn write_graph_to_cur(&mut self, index: u8) {
         assert!(index < 8, "Only 8 graphs allowed in CGRAM");
         self.write_u8_to_cur(index);
     }
@@ -129,7 +129,7 @@ where
         self.wait_and_send(CommandSet::ReadDataFromRAM).unwrap()
     }
 
-    fn draw_graph_to_cgram(&mut self, index: u8, graph_data: [u8; 8]) {
+    fn write_graph_to_cgram(&mut self, index: u8, graph_data: &[u8; 8]) {
         assert!(index < 8, "Only 8 graphs allowed in CGRAM");
 
         // 所有的行，设置为 1 的位，都应仅限于低 4 位

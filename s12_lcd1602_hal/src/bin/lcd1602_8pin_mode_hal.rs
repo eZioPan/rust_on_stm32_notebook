@@ -30,6 +30,7 @@ use lcd1602_hal::{
     builder::{Builder, BuilderAPI},
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
     pins::{EightPinsAPI, Pins},
+    utils::BitOps,
     LCDAnimation, LCDBasic, LCDExt, MoveType,
 };
 
@@ -123,7 +124,16 @@ fn main() -> ! {
 
     let mut lcd = lcd_builder.build_and_init();
 
-    lcd.draw_graph_to_cgram(1, HEART); // 在 CGRAM 里画一个小爱心
+    // 在 CGRAM 里画一个小爱心
+    lcd.write_graph_to_cgram(1, &HEART);
+
+    // 测试读取 CGRAM 的功能
+    let mut graph_data = lcd.read_graph_from_cgram(1);
+    // 修改心形图案为菱形
+    graph_data[1].set_bit(2);
+    graph_data[2].set_bit(2);
+    // 并存储到另一个位置上
+    lcd.write_graph_to_cgram(2, &graph_data);
 
     lcd.set_cursor_pos((1, 0)); // 这里我们故意向右偏移了一个字符，测试偏移功能是否正常
 
@@ -135,18 +145,23 @@ fn main() -> ! {
 
     lcd.set_cursor_blink_state(State::Off);
 
-    lcd.typewriter_write("hello, LCD1602!", 250_000);
+    lcd.typewriter_write("hello, LCD1602!~", 250_000);
 
     lcd.set_cursor_state(State::Off);
 
-    // 最后我们用我们绘制的心形覆盖全亮的方块
-    lcd.delay_ms(1_000u32);
-    lcd.write_custom_char_to_pos(1, (15, 0));
+    // 用我们绘制的心形和菱形覆盖全亮的方块
+    lcd.delay_ms(1_000);
+    lcd.write_graph_to_pos(1, (15, 0));
+    lcd.delay_ms(1_000);
+    lcd.write_graph_to_pos(2, (15, 1));
 
+    // 测试读取 DDRAM 的功能
     // 偷偷在 DDRAM 的末尾写上一个竖线
-    lcd.write_char_to_pos('|', (39, 1));
+    let char_at_end = lcd.read_u8_from_pos((39, 0));
+    lcd.write_u8_to_pos(char_at_end, (39, 1));
 
     // 挪动一下屏幕
+    lcd.delay_ms(1_000);
     lcd.shift_display_to_pos(2, MoveType::Shortest, State::On, 250_000);
     lcd.delay_ms(1_000);
     lcd.shift_display_to_pos(40 - 2, MoveType::Shortest, State::On, 250_000);
