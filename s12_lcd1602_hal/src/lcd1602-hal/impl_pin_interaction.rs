@@ -1,4 +1,7 @@
-use embedded_hal::blocking::delay::DelayUs;
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
 
 use super::{
     command_set::CommandSet,
@@ -8,7 +11,13 @@ use super::{
     LCDBasic, PinsInteraction, LCD,
 };
 
-impl<const PIN_CNT: usize> PinsInteraction for LCD<PIN_CNT> {
+impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> PinsInteraction
+    for LCD<ControlPin, DBPin, PIN_CNT, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
     fn delay_and_send(&mut self, command: impl Into<FullCommand>, delay_us: u32) -> Option<u8> {
         self.delayer.delay_us(delay_us);
         self.pins.send(command.into())

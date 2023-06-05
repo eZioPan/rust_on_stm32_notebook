@@ -1,3 +1,8 @@
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
+
 use crate::{command_set::Font, LCDBasic};
 
 use super::{
@@ -5,7 +10,13 @@ use super::{
     RAMType, StructAPI, LCD,
 };
 
-impl<const PIN_CNT: usize> StructAPI for LCD<PIN_CNT> {
+impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> StructAPI
+    for LCD<ControlPin, DBPin, PIN_CNT, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
     fn internal_set_line_mode(&mut self, line: LineMode) {
         assert!(
             (self.get_font() == Font::Font5x11) && (line == LineMode::OneLine),

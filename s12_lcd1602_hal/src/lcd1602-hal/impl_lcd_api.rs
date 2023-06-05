@@ -1,3 +1,8 @@
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
+
 use crate::StructAPI;
 
 use super::{
@@ -5,7 +10,13 @@ use super::{
     LCDBasic, PinsInteraction, RAMType, LCD,
 };
 
-impl<const PIN_CNT: usize> LCDBasic for LCD<PIN_CNT> {
+impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> LCDBasic
+    for LCD<ControlPin, DBPin, PIN_CNT, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
     fn init_lcd(&mut self) {
         // 在初始化流程中，我们最好每次都发送“裸指令”
         // 不要使用 LCD 结构体提供的其它方法

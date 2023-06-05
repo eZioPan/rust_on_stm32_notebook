@@ -8,7 +8,7 @@ edition.workspace = true
 
 [lib]
 name = "lcd1602_hal"
-path = "src/lcd1602_hal/mod.rs"
+path = "src/lcd1602-hal/mod.rs"
 
 [dependencies]
 

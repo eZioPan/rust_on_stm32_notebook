@@ -1,6 +1,9 @@
 #![no_std]
 
-use stm32f4xx_hal::timer::SysDelay;
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
 
 use self::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
@@ -19,9 +22,14 @@ mod impl_struct_api;
 pub mod pins;
 pub(crate) mod utils;
 
-pub struct LCD<const PIN_CNT: usize> {
-    pins: Pins<PIN_CNT>,
-    delayer: SysDelay,
+pub struct LCD<ControlPin, DBPin, const PIN_CNT: usize, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
+    pins: Pins<ControlPin, DBPin, PIN_CNT>,
+    delayer: Delayer,
     line: LineMode,
     font: Font,
     display_on: State,

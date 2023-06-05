@@ -1,4 +1,7 @@
-use stm32f4xx_hal::timer::SysDelay;
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
 
 mod impl_builder_api;
 
@@ -8,9 +11,14 @@ use super::{
     LCD,
 };
 
-pub struct Builder<const PIN_CNT: usize> {
-    pins: Option<Pins<PIN_CNT>>,
-    delayer: Option<SysDelay>,
+pub struct Builder<ControlPin, DBPin, const PIN_CNT: usize, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
+    pins: Option<Pins<ControlPin, DBPin, PIN_CNT>>,
+    delayer: Option<Delayer>,
     line: LineMode,
     font: Font,
     display_on: State,
@@ -21,11 +29,16 @@ pub struct Builder<const PIN_CNT: usize> {
     wait_interval_us: u32,
 }
 
-pub trait BuilderAPI<const PIN_CNT: usize> {
-    fn build_and_init(self) -> LCD<PIN_CNT>;
-    fn new(pins: Pins<PIN_CNT>, delayer: SysDelay) -> Self;
-    fn pop_pins(&mut self) -> Pins<PIN_CNT>;
-    fn pop_delayer(&mut self) -> SysDelay;
+pub trait BuilderAPI<ControlPin, DBPin, const PIN_CNT: usize, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
+    fn build_and_init(self) -> LCD<ControlPin, DBPin, PIN_CNT, Delayer>;
+    fn new(pins: Pins<ControlPin, DBPin, PIN_CNT>, delayer: Delayer) -> Self;
+    fn pop_pins(&mut self) -> Pins<ControlPin, DBPin, PIN_CNT>;
+    fn pop_delayer(&mut self) -> Delayer;
     fn set_line(self, line: LineMode) -> Self;
     fn get_line(&self) -> LineMode;
     fn set_font(self, font: Font) -> Self;

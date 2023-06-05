@@ -1,3 +1,8 @@
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
+
 use crate::RAMType;
 
 use super::{
@@ -5,7 +10,13 @@ use super::{
     LCDBasic, LCDExt, PinsInteraction, LCD,
 };
 
-impl<const PIN_CNT: usize> LCDExt for LCD<PIN_CNT> {
+impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> LCDExt
+    for LCD<ControlPin, DBPin, PIN_CNT, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
     fn toggle_display(&mut self) {
         match self.get_display_state() {
             State::Off => self.set_display_state(State::On),

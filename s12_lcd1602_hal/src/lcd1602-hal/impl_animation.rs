@@ -1,10 +1,20 @@
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
+
 use super::{
     command_set::{LineMode, MoveDirection, ShiftType, State},
     LCDAnimation, LCDBasic, LCDExt, MoveType, LCD,
 };
-use embedded_hal::blocking::delay::{DelayMs, DelayUs};
 
-impl<const PIN_CNT: usize> LCDAnimation for LCD<PIN_CNT> {
+impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> LCDAnimation
+    for LCD<ControlPin, DBPin, PIN_CNT, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
     /// 以特定的时间间隔，切换整个屏幕特定次数
     /// 当 count 为 0 时，永续切换屏幕
     fn full_display_blink(&mut self, count: u32, interval_us: u32) {

@@ -1,4 +1,7 @@
-use stm32f4xx_hal::timer::SysDelay;
+use embedded_hal::{
+    blocking::delay::{DelayMs, DelayUs},
+    digital::v2::{InputPin, OutputPin},
+};
 
 use crate::{
     command_set::{Font, LineMode, MoveDirection, ShiftType, State},
@@ -8,8 +11,14 @@ use crate::{
 
 use super::{Builder, BuilderAPI};
 
-impl<const PIN_CNT: usize> BuilderAPI<PIN_CNT> for Builder<PIN_CNT> {
-    fn build_and_init(mut self) -> LCD<PIN_CNT> {
+impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer>
+    BuilderAPI<ControlPin, DBPin, PIN_CNT, Delayer> for Builder<ControlPin, DBPin, PIN_CNT, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
+    fn build_and_init(mut self) -> LCD<ControlPin, DBPin, PIN_CNT, Delayer> {
         let mut lcd = LCD {
             pins: self.pop_pins(),
             delayer: self.pop_delayer(),
@@ -29,7 +38,7 @@ impl<const PIN_CNT: usize> BuilderAPI<PIN_CNT> for Builder<PIN_CNT> {
         lcd
     }
 
-    fn new(pins: Pins<PIN_CNT>, delayer: SysDelay) -> Self {
+    fn new(pins: Pins<ControlPin, DBPin, PIN_CNT>, delayer: Delayer) -> Self {
         Self {
             pins: Some(pins),
             delayer: Some(delayer),
@@ -44,11 +53,11 @@ impl<const PIN_CNT: usize> BuilderAPI<PIN_CNT> for Builder<PIN_CNT> {
         }
     }
 
-    fn pop_pins(&mut self) -> Pins<PIN_CNT> {
+    fn pop_pins(&mut self) -> Pins<ControlPin, DBPin, PIN_CNT> {
         self.pins.take().expect("No Pins to pop")
     }
 
-    fn pop_delayer(&mut self) -> SysDelay {
+    fn pop_delayer(&mut self) -> Delayer {
         self.delayer.take().expect("No delayer to pop")
     }
 
