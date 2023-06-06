@@ -92,6 +92,7 @@ pub trait LCDExt {
     fn write_char_to_pos(&mut self, char: char, pos: (u8, u8));
     fn write_graph_to_pos(&mut self, index: u8, pos: (u8, u8));
     fn read_graph_from_cgram(&mut self, index: u8) -> [u8; 8];
+    fn offset_cursor_pos(&mut self, offset: (i8, i8));
 }
 
 pub trait LCDBasic {
@@ -138,6 +139,11 @@ trait StructAPI {
     fn internal_set_shift(&mut self, shift: ShiftType);
     fn internal_set_display_offset(&mut self, offset: u8);
     fn internal_shift_cursor_or_display(&mut self, st: ShiftType, dir: MoveDirection);
+    fn internal_calculate_pos_by_offset(&self, offset: (i8, i8)) -> (u8, u8);
+}
+
+trait StructUtils {
+    fn calculate_pos_by_offset(&self, original_pos: (u8, u8), offset: (i8, i8)) -> (u8, u8);
 }
 
 trait PinsInteraction {

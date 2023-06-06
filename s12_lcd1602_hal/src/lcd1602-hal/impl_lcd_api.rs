@@ -3,11 +3,9 @@ use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
 };
 
-use crate::StructAPI;
-
 use super::{
     command_set::{CommandSet, DataWidth, Font, LineMode, MoveDirection, ShiftType, State},
-    LCDBasic, PinsInteraction, RAMType, LCD,
+    LCDBasic, PinsInteraction, RAMType, StructAPI, LCD,
 };
 
 impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> LCDBasic

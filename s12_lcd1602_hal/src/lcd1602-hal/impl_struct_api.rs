@@ -3,11 +3,11 @@ use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
 };
 
-use crate::{command_set::Font, LCDBasic};
+use crate::StructUtils;
 
 use super::{
-    command_set::{LineMode, MoveDirection, ShiftType, State},
-    RAMType, StructAPI, LCD,
+    command_set::{Font, LineMode, MoveDirection, ShiftType, State},
+    LCDBasic, RAMType, StructAPI, LCD,
 };
 
 impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> StructAPI
@@ -168,5 +168,77 @@ where
 
     fn internal_set_ram_type(&mut self, ram_type: RAMType) {
         self.ram_type = ram_type;
+    }
+
+    fn internal_calculate_pos_by_offset(&self, offset: (i8, i8)) -> (u8, u8) {
+        self.calculate_pos_by_offset(self.get_cursor_pos(), offset)
+    }
+}
+
+impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> StructUtils
+    for LCD<ControlPin, DBPin, PIN_CNT, Delayer>
+where
+    ControlPin: OutputPin,
+    DBPin: OutputPin + InputPin,
+    Delayer: DelayMs<u32> + DelayUs<u32>,
+{
+    fn calculate_pos_by_offset(&self, original_pos: (u8, u8), offset: (i8, i8)) -> (u8, u8) {
+        match self.get_line_mode() {
+            LineMode::OneLine => {
+                assert!(
+                    offset.0.abs() < 80,
+                    "x offset too big, should greater than -80 and less than 80"
+                );
+                assert!(offset.1 == 0, "y offset should always be 0 on OneLine Mode")
+            }
+            LineMode::TwoLine => {
+                assert!(
+                    offset.0.abs() < 40,
+                    "x offset too big, should greater than -40 and less than 40"
+                );
+                assert!(
+                    offset.1.abs() < 2,
+                    "y offset too big, should between -1 and 1"
+                )
+            }
+        }
+
+        match self.get_line_mode() {
+            LineMode::OneLine => {
+                let raw_x_pos = (original_pos.0 as i8) + offset.0;
+                if raw_x_pos < 0 {
+                    ((raw_x_pos + 80) as u8, 0)
+                } else if raw_x_pos > 79 {
+                    ((raw_x_pos - 80) as u8, 0)
+                } else {
+                    (raw_x_pos as u8, 0)
+                }
+            }
+            LineMode::TwoLine => {
+                let mut x_overflow: i8 = 0;
+
+                // 这里不需要考虑两行地址不连续的问题
+                // 因为我们在这里处理的是我们设计的坐标系，而非实际的内存地址
+                // 这里的设计有点像全加器的设计，具有一个溢出标识符
+                let mut raw_x_pos = (original_pos.0 as i8) + offset.0;
+
+                if raw_x_pos < 0 {
+                    raw_x_pos += 2;
+                    x_overflow = -1;
+                } else if raw_x_pos > 39 {
+                    raw_x_pos -= 2;
+                    x_overflow = 1;
+                }
+
+                let mut raw_y_pos = (original_pos.1 as i8) + offset.1 + x_overflow;
+                if raw_y_pos < 0 {
+                    raw_y_pos += 2
+                } else if raw_y_pos > 2 {
+                    raw_y_pos -= 2
+                };
+
+                (raw_x_pos as u8, raw_y_pos as u8)
+            }
+        }
     }
 }

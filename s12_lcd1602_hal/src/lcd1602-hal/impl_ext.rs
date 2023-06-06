@@ -3,11 +3,9 @@ use embedded_hal::{
     digital::v2::{InputPin, OutputPin},
 };
 
-use crate::RAMType;
-
 use super::{
     command_set::{CommandSet, State},
-    LCDBasic, LCDExt, PinsInteraction, LCD,
+    LCDBasic, LCDExt, PinsInteraction, RAMType, StructAPI, LCD,
 };
 
 impl<ControlPin, DBPin, const PIN_CNT: usize, Delayer> LCDExt
@@ -81,5 +79,9 @@ where
             .for_each(|line| *line = self.read_u8_from_cur());
 
         graph
+    }
+
+    fn offset_cursor_pos(&mut self, offset: (i8, i8)) {
+        self.set_cursor_pos(self.internal_calculate_pos_by_offset(offset));
     }
 }
