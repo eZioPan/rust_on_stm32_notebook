@@ -1,0 +1,1 @@
+这个 crate 使用了 PAC 来控制 LCD1602，有关于使用 HAL 库来实现 LCD1602 的控制，见独立的库 link:https://github.com/eZioPan/lcd1602-driver[]

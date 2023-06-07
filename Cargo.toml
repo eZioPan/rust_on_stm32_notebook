@@ -10,8 +10,7 @@ members = [
     "s08_dma",
     "s09_adc",
     "s10_systick",
-    "s11_lcd1602_pac",
-    "s12_lcd1602_hal",
+    "s11_lcd1602",
 ]
 
 [workspace.package]
