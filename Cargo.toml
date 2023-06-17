@@ -11,6 +11,7 @@ members = [
     "s09_adc",
     "s10_systick",
     "s11_lcd1602",
+    "s12_defmt",
 ]
 
 [workspace.package]
