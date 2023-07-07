@@ -25,7 +25,7 @@
       "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
       // 这个文件是 stm32 片上外设的寄存器的内存地址信息表
       // VSCode 插件 Cortex-Debug 会使用这个文件来显示外设的当前的状态
-      "svdPath": "${workspaceFolder}/vendor/STM32F411xx.svd",
+      "svdPath": "${workspaceFolder}/vendor/STM32F411.svd.patched",
       // 使用外部启动的 openOCD
       // 首先，这减少了启动 debug 的时间，其次，在必要的时候，我们可以通过 telnet 连接 openOCD 来发送一些额外的指令
       "servertype": "external",
@@ -35,18 +35,12 @@
       // 主要是 msys2 提供的可以 debug arm 芯片的 gdb 叫做 gdb-multiarch
       // 这里需要修改一下
       "windows": {
-        "name": "debug with openocd and cortex-debug",
-        "type": "cortex-debug",
-        "request": "attach",
         "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         "gdbPath": "gdb-multiarch.exe"
       },
       // Linux 上的差异化配置
       // 可以直接使用系统自带的 gdb
       "linux": {
-        "name": "debug with openocd and cortex-debug",
-        "type": "cortex-debug",
-        "request": "attach",
         "executable": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/${fileBasenameNoExtension}",
         "gdbPath": "gdb",
         // 重启的命令只有在 linux 上才是有意义的
