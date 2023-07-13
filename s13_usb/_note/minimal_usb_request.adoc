@@ -1,0 +1,201 @@
+= MCU 端 Log 解析
+
+== 前提
+
+第一，这是 Rust 源码中，s13c01，运行在 MCU 上，并接入 Linux 系统，所获得的 Request +
+第二，由于我们的 USB OTG 模块是运行在 device 模式下的，因此下面所有的 log，对应的是 USB Spec 里的 `USB Device Requests` 这个章节的内容 +
+第三，我们这里打印的都是来自 host 的 request，而且全都是发往 Control IN 或者 Control OUT 端口的，没有 MCU 对 host 的回复 +
+第四，数字值全部调整为大端在前了（USB 协议是小端序的），请注意
+
+== 解析
+
+=== 第 01 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0100, index: 0x0000, length: 0x0040 }
+```
+
+. 首先，所有的结构体的大框架均对应 USB Spec 的 `Format of Setup Data`，也就是所，解析 `Request` 这个结构体，首先要对照的就是 `Format of Setup Data` 这张表
+. 结构体中的 `direction`、`request_type`、`recipient` 对应 `bmRequestType` 字段的解释
+. 对于 `request_type` 为 `Standard` 的请求，我们可以查询 USB Spec 的 `Standard Device Request` 章节
+.. `request: 0006` 查询 USB Spec 的 `Standard Request Codes` 表可知，它表示 `GET_DESCRIPTOR`
+.. `value: 0100` 查询 USB Spec 的 `Standard Device Requests` 表可知，当 request（`bRequest`）为 `GET_DESCRIPTOR` 时，其 value（`wValue`）值表示的是 `Descriptor
+Type and Descriptor Index` +
+接着查询 `Get Descriptor` 章节的文字可知，`wValue` 位的高字节对应的是 `descriptor type`，低位对应的是 `descriptor value` +
+`descriptor type` 可以查询 `Descriptor Types` 表，发现 `0x01` 对应的 `descriptor type` 为 `DEVICE` +
+`descriptor index` 则表示，如果有多个同 type 的 descriptor，那么应该访问的是哪个 descriptor（仅 `configuration` 和 `string` 这两个 type 的 descriptor 的 `descriptor index` 值有效），这里由于 `descriptor type` 的值为 `DEVICE`，因此是无意义的
+.. `index: 0000` 返回来查询 `Standard Request Codes` 表，`GET_DESCRIPTOR` 的 `wIndex` 要么是 0，要么是 `Language ID` +
+这里是 0，表示这个值是初始化值，于是我们可以简单忽略它
+.. `length: 0040`，它对应 `Format of Setup Data` 表的 `wLength` 字段，由于它的值在不同的 setup request 中的含义是一致的，因此它的解析在 USB Spec 中处于最上一层 +
+`length: 0040` 表示的是，在 SETUP phase 之后，需要跟随一个长度为 `0x40` 字节的 DATA phase +
+接着我们要结合 `direction: In` 这个字段来看，它表示，这个 DATA phase 应该是由 device 发往 host 的，而且长度是 0x40 这么长 +
+（这里再次强调，direction 总是站在 host 的角度说明的，因此 `IN` 总表示 **host 接收**，`OUT` 总表示 **host 发送**）
+
+好了，上面这么一大段，通俗的描述可以是：
+
+Host：“嘿 Device，这是一个标准请求（`request_type: Standard`），设备层级来处理这个请求（`recipient: Device`）， +
+我需要获得描述符（`request: 0006`），描述符是关于设备层级的（`value: 0100`），不用关心语言的事情（`index: 0000`）, +
+最后，一会儿发送的数据得是 64 字节（`length: 0040`），而且是你 device 发送给我 host 的（`direction: In`）。”
+
+终于解析了第一个 Request 了，还挺复杂，下面的解析将简化一下，着重解析 `request`、`value`、`index` 三个字段，其它字段的信息将忽略或一笔带过
+
+=== 第 02 个 Request
+
+```rust
+Request { direction: Out, request_type: Standard, recipient: Device, request: 0x0005, value: 0x0007, index: 0x0000, length: 0x0000 }
+```
+
+`request: 0005` -> `Standard Request Codes` 表查询，含义 `SET_ADDRESS`
+
+`value: 0007` -> `Set Address` 章查询，表示 `Device Address`，也就是说，这个设备在本次接入 USB 总线后，断开连接前，后续的通信均使用地址 0x0007
+
+`index: 0000` -> 在 `SET_ADDRESS` 时保持为 0，无意义
+
+`length: 0000` -> 在 `SET_ADDRESS` 时保持为 0，表示后续无数据发送（在 `wLength` 为 0 的情况下，`direction` 其实是被忽略的）
+
+这一步的操作，就是 Host 为 Device 分配了一个 Host 访问 Device 的地址（这个地址与 IP 地址有点像，每次设备重新连接的时候，都会分配一个新的）
+
+=== 第 03 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0100, index: 0x0000, length: 0x0012 }
+```
+
+然后这里又重复了第一个 Request，这里是在分配了地址之后，正式向设备发送 GET_DESCRIPTOR 请求，这次要求返回的大小就是 0x12 个字节了 +
+这个大小其实来自于第一次 MCU 响应 `GET_DESCRIPTOR` 请求时返回的字段总大小值。（不过，由于我们这里仅展示 Request，因此我们看不到而已）
+
+=== 第 04 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0F00, index: 0x0000, length: 0x0005 }
+```
+
+`request: 0x0006` -> `GET_DESCRIPTOR`
+
+`value: 0x0F00` -> 0x0F 这个值比较特殊，它其实来自于 USB 3.0（目前是 USB 3.2 Specification），表示的是这个描述符的类型为 BOS（Binary device Object Store） +
+是一种二进制编码的、可扩展的、用于在标准 USB Spec 之上，描述和添加 device 层级的能力的框架。
++
+如果你用 wireshark 捕获过 MCU（STM32F411RE）和 USB 之间的通信，你就会发现， +
+在 Host 与 Device 的首次通信中，MCU 返回给 Host 的 Response 中，`bcdUSB` 的值并非 USB 2.0 的 0x0200，而是 0x0210 +
+它并非表示自己是一个符合 USB 2.1 Spec 的设备，它表示的是自己是一个支持 USB 3.0 中 BOS 的 USB 2.0 设备，因此它的 USB 的版本号是大于 0x0200，但小于 0x0300 的
++
+在 MCU 收到这个请求之后，是回复了一个有效的 BOS Response 的，因此下方第 5 个 Request，才会再次请求 BOS，而且要求返回的长度才会有变化
+
+`index: 0x0000` -> 忽略 LanguageID
+
+`length: 0x0005` -> 要求获得的长度 0x5 个字节
+
+=== 第 05 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0F00, index: 0x0000, length: 0x000C }
+```
+
+接上条，这次 Host 接着请求 BOS，之后 MCU 也会返回所需的 BOS
+
+（在这里，MCU 返回 Response 的内容是 `USB 2.0 Extension` 相关的 BOS）
+
+详细的解释见 第 04 个 Request
+
+=== 第 06 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0600, index: 0x0000, length: 0x000A }
+```
+
+`value: 0x0600` -> 0x06 这个值也有一些特殊，因为它在 USB 2.0 Spec 里表示的是 `DEVICE_QUALIFIER` +
+不过由于我们的 USB OTG 模块支持 BOS，它是不可以支持 DEVICE_QUALIFIER 的，因此 MCU 返回的内容直接为空，等价于这个 Request 被忽略了 +
+也正是因此，Host 猜连续发送了三次同样的请求。
+
+=== 第 07 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0600, index: 0x0000, length: 0x000A }
+```
+
+Host 又问了一遍 `DEVICE_QUALIFIER`
+
+=== 第 08 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0600, index: 0x0000, length: 0x000A }
+```
+
+Host 再问了一遍 `DEVICE_QUALIFIER`
+
+=== 第 09 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0200, index: 0x0000, length: 0x0009 }
+```
+
+`value: 0x0200` -> 0x02 在 Descriptor Types 表中表示 `CONFIGURATION`（终于，DEVICE 层级的内容交换完成了），0x00 表示索引为 0x00 的 CONFIGURATION
+
+=== 第 10 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0200, index: 0x0000, length: 0x0012 }
+```
+
+这次请求 `CONFIGURATION` 的时候，把整个 CONFIGURATION 的长度都请求上了
+
+其实要是仔细观察的话，你就会发现，这种一个问题请求两边的情况非常常见。因为 USB Request 的特点就是，某种特定的 Request 对应的 Response， +
+它的“头部”的长度和含义是固定的，而且必然包含完整 Response 的长度，于是乎，Host 就先请求必然完整的头部数据，解析头部数据的内容之后，获得了完整的 Response 应有的长度 +
+再发送一次 Request，来获得完整的 Response。
+
+=== 第 11 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0300, index: 0x0000, length: 0x00FF }
+```
+
+`value: 0x0300` -> 0x03 在 Descriptor Types 表中表示 `STRING`，它表示返回的值应该是各种字符串；0x00 这个 index 在 STRING 这个语境下比较特殊 +
+它的解释在 `Standard USB Descriptor Definitions` 章节下的 `String` 章节的第二段的中部，它表示这个 Request 请求的是，这个设备所支持的所有 USB Language ID +
+然后 LANGUAGE ID 的信息很难在 usb.org 的网站上找到，因为它出现在 link:https://usb.org/deprecated-links-and-tools[Deprecated Links and Tools] 了， +
+而且网页种指向了微软的一个网页，而微软的网页有告诉我们，这个 Language identifier constants 又被弃用了，不过该网页依旧提供了一个连接，指向了另一个网页 +
+link:https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-lcid/70feba9f-294e-491e-b6eb-56532684c37f[[MS-LCID\]: Windows Language Code Identifier (LCID) Reference]，在这个网页里面，我们能下载到相关的文档
+
+`length: 0x00FF` -> 可能是因为请求的字符串，因此这里直接锁定为 0xFF 这个长度
+
+=== 第 12 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0302, index: 0x0409, length: 0x00FF }
+```
+
+`value:0x0302` -> 0x03 同上，表示的是 `STRING`，0x02 表示的索引为 0x02 的字符串。 +
+要解释 0x02 这个索引对应的含义，首先要注意到的是，这个 Request 的 recipient 是 Device，因此这个索引应该在 Device 层级查询，然后是前面我们给出的 Device 层级的 Response 里，是有注明 Product 对应的字符串，Host 应该访问 String 类型，索引 0x02 获得。 +
+因此这里 Host 请求的就是设备的产品名称。
+
+`index: 0x0409` -> 这里不再是 0 了，0x0409 在 LANGUAGEID 中表示的是 en-US
+
+=== 第 13 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0301, index: 0x0409, length: 0x00FF }
+```
+
+`value: 0x0301` -> 与上面类似，0x03 表示 STRING 类型，0x01 是我们先前 Device Response 给出的 Manufacturer 的索引 +
+表示这里 Host 请求的是设备的生产商名称
+
+`index: 0x0409` -> 同上
+
+=== 第 14 个 Request
+
+```rust
+Request { direction: In, request_type: Standard, recipient: Device, request: 0x0006, value: 0x0303, index: 0x0409, length: 0x00FF }
+```
+
+`value: 0x0303` -> 类似，这里请求的是位于索引 0x03 的序列号
+
+=== 第 15 个 Request
+
+```rust
+Request { direction: Out, request_type: Standard, recipient: Device, request: 0x0009, value: 0x0001, index: 0x0000, length: 0x0000 }
+```
+
+`request: 0x0009` -> 在所有内容均请求完成后，Host 向 Device 发出了 `SET_CONFIGURATION` 请求
+
+`value: 0x0001` 依照 Set Configuration 章节的说明，这里的 `wValue` 的低两位直接表示要启动的配置的编号，而高两位是保留不用的。注意到配置的编号不可以是 0x00，因为设置为 0x00 这个配置，会让设备保持在 Address state。
+
+`index: 0x0000` 和 `length: 0x0000` 均保持为 0

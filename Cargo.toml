@@ -13,6 +13,7 @@ members = [
     "s10_systick",
     "s11_lcd1602",
     "s12_defmt",
+    "s13_usb",
 ]
 
 [workspace.package]
