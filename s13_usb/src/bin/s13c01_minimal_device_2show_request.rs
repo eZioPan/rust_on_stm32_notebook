@@ -3,6 +3,9 @@
 //! 在 最小 USB 设备 的源码上，修改 class 的代码，在 defmt 中打印出每个 host 发给 device 的 request 的内容
 //!
 //! 我这里捕获的 request、以及其解析，放在了 ./note/minimal_usb_request.adoc 文件里
+//!
+//! Note: 如果你想同步使用 Wireshark 捕获数据，那么我强烈建议你将该 MCU 接入运行在 bare-metal 的 Linux 系统，
+//! 然后在 Linux 系统上通过 Wireshark 搭配 usbmon 内核模块来捕获 URB
 
 #![no_std]
 #![no_main]
@@ -15,10 +18,7 @@ use stm32f4xx_hal::{
     pac,
     prelude::*,
 };
-use usb_device::{
-    class_prelude::*,
-    prelude::{UsbDeviceBuilder, UsbVidPid},
-};
+use usb_device::{class_prelude::*, prelude::*};
 
 struct MyUSBClass {
     iface_index: InterfaceNumber,
@@ -68,7 +68,7 @@ fn main() -> ! {
     let clocks = rcc
         .cfgr
         .use_hse(8.MHz())
-        .sysclk(96.MHz()) // 这里我们还是将 SYSCLK 的频率设置的高一些
+        .sysclk(96.MHz())
         .require_pll48clk()
         .freeze();
 
@@ -89,22 +89,12 @@ fn main() -> ! {
         .product("random product")
         .serial_number("random serial");
 
-    #[cfg(debug_assertions)]
-    let usb_device_builder = usb_device_builder
-        .self_powered(true)
-        .supports_remote_wakeup(true);
-
     let mut usb_dev = usb_device_builder.build();
 
     let mut delay = cp.SYST.delay(&clocks);
 
     loop {
-        if !usb_dev.poll(&mut [&mut my_usb]) {
-            delay.delay_us(500u16);
-            continue;
-        }
-
-        // 最后，我们不要每次轮询到有数据的时候都打印状态了，直接等一下就好了
-        delay.delay_us(5u8);
+        usb_dev.poll(&mut [&mut my_usb]);
+        delay.delay_ms(10u8);
     }
 }

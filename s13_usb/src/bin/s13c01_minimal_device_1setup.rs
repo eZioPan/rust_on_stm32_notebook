@@ -38,10 +38,8 @@ use stm32f4xx_hal::{
     pac,
     prelude::*,
 };
-use usb_device::{
-    class_prelude::*,
-    prelude::{UsbDeviceBuilder, UsbVidPid},
-};
+
+use usb_device::{class_prelude::*, prelude::*};
 
 // UsbClass 大致对应 USB 2.0 Specification 中的 Configuration Descriptor 层级
 // 一个 UsbClass 可以理解为具有特定功能的一个 Configuration
@@ -114,15 +112,15 @@ fn main() -> ! {
     let rcc = dp.RCC.constrain();
 
     // 配置 RCC 的时候需要注意，
-    // 我们至少需要将 SYSCLK 拉到 12 MHz 或以上（正常情况应该远高于 12 MHz），并单独使用 .require_pll48clk() 方法
-    // 让 USB OTG 模块能正常启动并与 USB Host 通信
+    // 理论上，我们至少需要将 SYSCLK 拉到 12 MHz，并单独使用 .require_pll48clk() 方法，就可以让 USB OTG 模块能正常启动并与 USB Host 通信
+    // 但实际上，为了稳定的枚举，SYSCLK 需要远高于 12 MHz，否则 Cortex 处理信息的速度就太慢了，会导致 UsbBus 枚举超时
     //
     // 另外，USB 也没有单独的时钟线，device 和 host 间的总线时钟同步是靠数据线上的“特定电平变化”实现的
     // 因此，我们这里启用外部晶振，尽量保持 device 端的总线时钟的精确
     let clocks = rcc
         .cfgr
         .use_hse(8.MHz())
-        .sysclk(12.MHz())
+        .sysclk(96.MHz()) // 注意，我们这里将 SYSCLK 的时钟设置到了较高的 96 MHz
         .require_pll48clk()
         .freeze();
 
@@ -154,7 +152,7 @@ fn main() -> ! {
     //
     // 特别注意，我们必须在创建 UsbDevice 对象之前创建好 MyUSBClass
     // 下方我们使用了 UsbDeviceBuilder 创建 UsbDevice，因此这里实际上是在对 UsbDeviceBuilder 的实例调用 `.build()` 方法前，创建 MyUSBClass
-    let mut my_usb = MyUSBClass::new(&usb_bus_alloc);
+    let mut my_usb_class = MyUSBClass::new(&usb_bus_alloc);
 
     // 接着，我们需要创建 UsbDevice 的实例
     // 这个实例依旧需要 UsbBusAllocator 来获得 Endpoint 0 IN 和 Endpoint 0 OUT 的控制
@@ -170,14 +168,6 @@ fn main() -> ! {
         .product("random product")
         .serial_number("random serial");
 
-    // 另外，在开发和测试阶段，我们的 MCU 几乎必然是外部供电的（比如通过 DAPLink 供电），因为还是需要 debug 的
-    // 因此在开发测试阶段，我们得告知 USB Host，MCU 具有外部供电，并支持（和启用了）远程唤醒
-    // 依照成品实际的供电状态，这两个参数在实际的成品设备中不一定要出现
-    #[cfg(debug_assertions)]
-    let usb_device_builder = usb_device_builder
-        .self_powered(true)
-        .supports_remote_wakeup(true);
-
     // 调用 `.build()` 方法，构建实际的 UsbDevice 实例
     // 构建好后，UsbDevice 实例会处于 UsbDeviceState::Default 状态
     // 之后，我们可以不断轮询 UsbDevice 实例，看看 Host 有没有发送数据，在做出响应的响应
@@ -192,26 +182,41 @@ fn main() -> ! {
     // 为了方便理解，下面我们会通过轮询 USB 模块的方法获取数据
     // 不过鉴于 USB 上的包是有发送间隔的，因此我们启动 Cortex 自带的时钟
     // 这样一次轮询之后，可以让 CPU 等待一段时间，再轮询
+    //
+    // 注，依照 USB 2.0 Spec 的 9.2.6 Request Processing 的说明
+    // 1. 在 Reset/Resume 之后，device 有 10 ms 的时间可以不回复 Host 发来的响应
+    // 2. 在 Set Address 阶段，device 有 50 ms 的时间来回复 Host 的 SET_ADDRESS 请求
+    //    且在回复之后，device 有 2 ms 的时间配置好自己的状态，以接收之后使用新地址的 SETUP 请求
+    // 3. 其它 标准设备请求 的响应时长，首个响应的数据包的回复间隔不应该超过 500 ms，
+    //    如果在一个回复中需要发送多个数据包，则这些包的间隔不应该超过 500 ms
+    //    且最后一个包发送完毕后，接收方返回确认包的间隔不应该超过 50 ms
+    // 4. 其它 非标准设备请求，除非 非标准请求有另行说明（可以是更快或更慢），也应该遵循 3 中提到的时间间隔
     let mut delay = cp.SYST.delay(&clocks);
 
     // 然后就是轮询 USB OTG 模块了
-    // 准确来说，是轮询 UsbDevice 实例，有没有特定的实现了 UsbClass 的实例需要处理的内容
-    // 没有的话就等待 500 us，然后执行下一个询问
-    // 有的话就执行后面的代码，让那些实例有空处理内容
+    // 准确来说，是轮询 UsbDevice 实例，并顺次轮询加入轮询列表的实现了 UsbClass trait 的实例
+    //
+    // （注意，这里的处理流程并非实际使用中的处理流程，仅做展示 USB Device 的状态使用）
+
+    // 在实际的测试中，usb_dev 在连接上 Host 后，会出经过如下的状态切换
+    // Default -> Suspend -> Default -> Addressed -> （之后依照情况不同出现不同的状态）
+    // -> 挂载了驱动（MacOS/Linux 默认状态） -> Configured
+    // -> 未挂载驱动（Windows 默认状态） -> 等待 5 秒后超时 -> Suspend
+
+    let mut last_state = usb_dev.state();
+    defmt::info!("{:?}", last_state);
+
     loop {
-        if !usb_dev.poll(&mut [&mut my_usb]) {
-            delay.delay_us(500u16);
-            continue;
+        usb_dev.poll(&mut [&mut my_usb_class]);
+
+        let cur_state = usb_dev.state();
+        if cur_state != last_state {
+            defmt::info!("{:?}", cur_state);
+            last_state = cur_state;
         }
 
-        // 如果 USB Host 发来了数据，那我们得稍微等一下，等回复发送出去了，再接着 poll USB Bus，否则会直接枚举失败
-        //
-        // 正常情况下，我们并不需要额外等待这个时间，因为一般来说，在有数据来了之后，我们都会进一步进行处理，
-        // 这样 USB OTG 模块自然就有时间发送回执了，也就不需要这个 delay 了
-        // delay.delay_us(1u8);
-
-        // 在这里，由于我们的 MyUSBClass 没有什么功能，
-        // 因此我们这里随便打印一下 UsbDevice 的状态好了
-        defmt::info!("{:?}", usb_dev.state());
+        // 这里的 10 ms 的轮询等待，是在满足 USB 2.0 Spec 的情况下，
+        // 随便设置的一个值
+        delay.delay_ms(10u8);
     }
 }
