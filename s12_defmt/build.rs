@@ -46,8 +46,4 @@ fn main() {
 
     // 可选，将 defmt 的日志等级调整为最详尽的状态
     println!("cargo:rustc-env=DEFMT_LOG=trace");
-
-    // 使用 ARM 工具链提供的 ld，不要使用 rust 工具链提供的 ld
-    // 避免出现链接假死的问题
-    println!("cargo:rustc-linker=arm-none-eabi-ld");
 }

@@ -40,6 +40,4 @@ fn main() {
 
     // Set the linker script to the one provided by cortex-m-rt.
     println!("cargo:rustc-link-arg=-Tlink.x");
-
-    println!("cargo:rustc-linker=arm-none-eabi-ld");
 }

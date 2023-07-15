@@ -40,8 +40,4 @@ fn main() {
 
     // Set the linker script to the one provided by cortex-m-rt.
     println!("cargo:rustc-link-arg=-Tlink.x");
-
-    // 使用 ARM 工具链提供的 ld，不要使用 rust 工具链提供的 ld
-    // 避免出现链接假死的问题
-    println!("cargo:rustc-linker=arm-none-eabi-ld");
 }

@@ -1,3 +1,7 @@
 [build]
 # 设置默认目标为 ARMv7-M
 target = "thumbv7em-none-eabihf"
+
+# 可以额外指定一个外部的链接器，不过我这里测试好像没有必要
+# [target.thumbv7em-none-eabihf]
+# linker = "arm-none-eabi-ld"
