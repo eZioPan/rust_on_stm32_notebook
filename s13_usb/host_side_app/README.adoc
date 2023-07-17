@@ -1,0 +1,5 @@
+由于 USB 是一个 Host 主动，Device 被动的协议
+
+因此我们必须写一些简单的 Host 端程序，才能测试我们在 MCU 上写的程序是否正确
+
+不过由于 stable 版本的 cargo 还不支持 link:https://doc.rust-lang.org/cargo/reference/unstable.html#per-package-target[per-package-target]，因此请将本目录拷贝至本笔记之外，再进行修改和编译。

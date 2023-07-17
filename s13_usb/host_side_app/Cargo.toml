@@ -1,0 +1,15 @@
+# 这里我给出了一个空的 [workspace]
+# 是为了防止 rust-analyzer 读取到这个目录的源码，而产生不必要的错误
+# 毕竟这里的代码是运行在 USB Host 设备上的，编译目标并不相同
+# 等待 https://doc.rust-lang.org/cargo/reference/unstable.html#per-package-target 合并到 stable 分支，就不用这么写了
+[workspace]
+
+[package]
+name = "host_usb_app"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rusb = "*"

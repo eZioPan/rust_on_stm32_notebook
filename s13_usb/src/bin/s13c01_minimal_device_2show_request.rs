@@ -54,7 +54,7 @@ impl<B: UsbBus> UsbClass<B> for MyUSBClass {
     }
 }
 
-static mut EP_MEM: [u32; 1024] = [0u32; 1024];
+static mut EP_MEM: [u32; 2] = [0u32; 2];
 
 #[cortex_m_rt::entry]
 fn main() -> ! {

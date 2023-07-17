@@ -98,9 +98,16 @@ impl<B: UsbBus> UsbClass<B> for MyUSBClass {
     }
 }
 
-// 开辟一些内存
-// 我猜可能是作为 Endpoint 的收发 buffer 准备的？
-static mut EP_MEM: [u32; 1024] = [0u32; 1024];
+// 开辟一些内存，作为 OUT 类 Endpoint 的 buffer 使用
+//
+// 我分析了一下 synopsys-otg-fs 这个 crate，发现这个内存的用法是这样的
+//
+// 取所有 OUT 方向的 Endpoint（包含 Control 0 OUT），对每个 Endpoint 的 max_packet_size 做如下计算
+// (max_packet_size + 3) / 4
+// 并将结果全部相加，以得到最终的结果
+// 比如我们这里，仅使用了必须开启的 Control 0 OUT，Control 0 OUT 的 max_packet_size 为 8 byte
+// 因此这里我们需要留出的空间为 (8+3)/4 = 2
+static mut EP_OUT_MEM: [u32; 2] = [0u32; 2];
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
@@ -146,7 +153,7 @@ fn main() -> ! {
     //
     // TIP: 实际上，UsbBusType 是 UsbBus<USB> 的别名，不过由于 UsbBus 已经是与之关联的 trait 的名称了
     // 因此 synopsys_ubs_otg crate 定义了一个别名，方便我们使用
-    let usb_bus_alloc = UsbBusType::new(usb, unsafe { &mut EP_MEM });
+    let usb_bus_alloc = UsbBusType::new(usb, unsafe { &mut EP_OUT_MEM });
 
     // 在生成了 UsbBusAllocator 之后，我们就可以通过它来构建我们自己的 MyUSBClass 实例对象了
     //
