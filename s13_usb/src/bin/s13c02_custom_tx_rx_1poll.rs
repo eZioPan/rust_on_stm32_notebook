@@ -35,11 +35,6 @@ use usb_device::{
     prelude::{UsbDeviceBuilder, UsbDeviceState, UsbVidPid},
 };
 
-// 为了更好的标识 MCU 处理的内容
-// 这里为 defmt 添加了一个编号，这样我们就能方便地观察 log 的序号
-static COUNT: AtomicU32 = AtomicU32::new(0);
-defmt::timestamp!("{}", COUNT.fetch_add(1, Ordering::Relaxed));
-
 // 这里我们自定义的 USB Class 需要具有收发功能，因此其内容也要增加一些
 struct MyUSBClass<'a, B: UsbBus> {
     // 这里还是一样，负责相关数据收发的 Endpoint 需要归类在一个 Interface 下
@@ -154,6 +149,11 @@ impl<'a, B: UsbBus> UsbClass<B> for MyUSBClass<'a, B> {
         self.in_empty = true;
     }
 }
+
+// 为了更好的标识 MCU 处理的内容
+// 这里为 defmt 添加了一个编号，这样我们就能方便地观察 log 的序号
+static COUNT: AtomicU32 = AtomicU32::new(0);
+defmt::timestamp!("{}", COUNT.fetch_add(1, Ordering::Relaxed));
 
 // 参考 s13c01 的说法
 // 我们这里有 CONTROL OUT 0 和 INTERRUPT OUT 1

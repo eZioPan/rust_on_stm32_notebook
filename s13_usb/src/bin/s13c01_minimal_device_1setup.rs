@@ -143,7 +143,7 @@ fn main() -> ! {
         &clocks,
     );
 
-    // 在 synopsys_ubs_otg crate 内部，UsbBusType struct 实现了 usb_device crate 里的 UsbBus trait
+    // 在 synopsys_usb_otg crate 内部，UsbBusType struct 实现了 usb_device crate 里的 UsbBus trait
     // 由于 UsbBusType 实现了 UsbBus，因此 UsbBusType 可以塞进 usb_device 的 UsbBusAllocator struct 里
     // 于是乎，我们在这里看到的总效果就是，我们使用 UsbBusType 的 new() 关联函数，生成了 UsbBusAllocator
     //
@@ -152,7 +152,7 @@ fn main() -> ! {
     // 其它的实现方法可能需要其它传递的对象和参数
     //
     // TIP: 实际上，UsbBusType 是 UsbBus<USB> 的别名，不过由于 UsbBus 已经是与之关联的 trait 的名称了
-    // 因此 synopsys_ubs_otg crate 定义了一个别名，方便我们使用
+    // 因此 synopsys_usb_otg crate 定义了一个别名，方便我们使用
     let usb_bus_alloc = UsbBusType::new(usb, unsafe { &mut EP_OUT_MEM });
 
     // 在生成了 UsbBusAllocator 之后，我们就可以通过它来构建我们自己的 MyUSBClass 实例对象了
