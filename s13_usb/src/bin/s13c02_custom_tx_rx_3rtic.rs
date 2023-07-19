@@ -43,7 +43,7 @@ mod app {
         ep_out_mem:[u32; 10] = [0u32; 10],
         usb_bus_alloc: Option<UsbBusAllocator<UsbBusType>> = None,
     ])]
-    fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
+    fn init(ctx: init::Context) -> (Shared, Local) {
         defmt::info!("program start");
 
         let dp = ctx.device;
@@ -89,7 +89,6 @@ mod app {
                 usb_device,
                 my_usb_class,
             },
-            init::Monotonics(),
         )
     }
 

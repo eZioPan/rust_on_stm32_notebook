@@ -19,4 +19,4 @@ defmt = "*"
 defmt-rtt = "*"
 panic-probe = { version = "*", features = ["print-defmt"] }
 usb-device = { version = "*", features = ["defmt"] }
-cortex-m-rtic = "*"
+rtic = { version = "*", features = ["thumbv7-backend"] }

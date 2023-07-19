@@ -65,9 +65,9 @@ mod app {
     // 会禁用所有的外部中断，并获得处理器的完全控制权
     // 如其名，它一般用于初始化系统
     #[init]
-    // 有一个值得注意的地方，init::Context 和 init::Monotonics 中的 init 来自函数名 init，
+    // 有一个值得注意的地方，init::Context 中的 init 来自函数名 init，
     // 而这个函数名是任取的，因此这个前缀也并非固定的，在后面的 task 定义中就可以发现这个特点
-    fn init(mut ctx: init::Context) -> (Shared, Local, init::Monotonics) {
+    fn init(mut ctx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
 
         // ctx.device 就是 stm32f4xx_hal::pac::Peripheral::take().unwrap() 的结果
@@ -108,7 +108,6 @@ mod app {
                 button,
                 trigger_count: 0,
             },
-            init::Monotonics(),
         )
     }
 
