@@ -1,1 +1,2 @@
 *.x linguist-language=Linker-Script
+*.json linguist-language=JSON-with-comments
