@@ -14,23 +14,6 @@
 #![no_std]
 #![no_main]
 
-use core::{
-    cell::RefCell,
-    sync::atomic::{AtomicU32, Ordering},
-};
-
-use cortex_m::{interrupt::Mutex, peripheral::NVIC};
-use defmt_rtt as _;
-use panic_probe as _;
-
-use stm32f4xx_hal::{
-    interrupt,
-    otg_fs::{self, UsbBusType},
-    pac,
-    prelude::*,
-};
-use usb_device::{class_prelude::*, prelude::*};
-
 mod my_usb_class {
     use crate::my_usb_class::{
         bos_desc::MS_OS_20_DESC_PLAT_CAP_DESC, ms_os_20_desc_set::MS_OS_20_DESC_SET,
@@ -67,12 +50,7 @@ mod my_usb_class {
         ) -> usb_device::Result<()> {
             defmt::info!("write config desc");
             writer
-                .interface(
-                    self.iface0_index,
-                    0xFF,
-                    0x00,
-                    0x00,
-                )
+                .interface(self.iface0_index, 0xFF, 0x00, 0x00)
                 .unwrap();
 
             // 注意：IAD interface association descriptor 是 USB 3.2 Spec 里的内容
@@ -80,13 +58,7 @@ mod my_usb_class {
             // 我们是通过 IAD 将多个 interface 合并为一个 function 的
             // 注意 IAD 的配置必须紧邻将要关联的 interface 的前面
             writer
-                .iad(
-                    self.iad0_iface0_index,
-                    2,
-                    0xFF,
-                    0x00,
-                    0x00,
-                )
+                .iad(self.iad0_iface0_index, 2, 0xFF, 0x00, 0x00)
                 .unwrap();
             writer
                 .interface(self.iad0_iface0_index, 0xFF, 0x00, 0x00)
@@ -251,6 +223,23 @@ mod my_usb_class {
     }
 }
 
+use core::{
+    cell::RefCell,
+    sync::atomic::{AtomicU32, Ordering},
+};
+
+use cortex_m::{interrupt::Mutex, peripheral::NVIC};
+use defmt_rtt as _;
+use panic_probe as _;
+
+use stm32f4xx_hal::{
+    interrupt,
+    otg_fs::{UsbBusType, USB},
+    pac,
+    prelude::*,
+};
+use usb_device::{class_prelude::*, prelude::*};
+
 use crate::my_usb_class::MyUSBClass;
 
 static COUNT: AtomicU32 = AtomicU32::new(0);
@@ -279,7 +268,7 @@ fn main() -> ! {
 
     let gpioa = dp.GPIOA.split();
 
-    let usb = otg_fs::USB::new(
+    let usb = USB::new(
         (dp.OTG_FS_GLOBAL, dp.OTG_FS_DEVICE, dp.OTG_FS_PWRCLK),
         (gpioa.pa11, gpioa.pa12),
         &clocks,

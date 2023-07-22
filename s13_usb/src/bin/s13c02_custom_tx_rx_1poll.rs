@@ -14,7 +14,7 @@
 //!    - 厂商选 WinUSB 设备，型号选 WinUSB 设备
 //!    - 确认弹出的警告提示
 //!
-//! 另：在 s13c03_1winusb.rs 中，我们会实现一种 Windows 可以自动识别，并匹配 WinUSB 驱动的 usb device
+//! 另：在 winusb.rs 中，我们会实现一种 Windows 可以自动识别，并匹配 WinUSB 驱动的 usb device
 
 #![no_std]
 #![no_main]
