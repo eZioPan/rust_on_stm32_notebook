@@ -15,6 +15,148 @@
 #![no_main]
 
 mod my_usb_class {
+
+    mod bos_desc {
+        use core::mem::size_of;
+
+        use super::ms_os_20_desc_set::MsOs20DescSet;
+
+        #[repr(C)]
+        pub(super) struct MsOs20DescPlatCapDesc {
+            b_reserved: u8,
+            plat_cap_uuid: PlatCapUUID,
+            dw_win_version: [u8; 4],
+            w_ms_os_desc_set_total_length: [u8; 2],
+            b_ms_vendor_code: u8,
+            b_alt_enum_code: u8,
+        }
+
+        #[repr(C)]
+        struct PlatCapUUID {
+            g0: [u8; 4],
+            g1: [u8; 2],
+            g2: [u8; 2],
+            g3: [u8; 2],
+            g4: [u8; 6],
+        }
+
+        pub(super) const MS_OS_20_DESC_PLAT_CAP_DESC: MsOs20DescPlatCapDesc =
+            MsOs20DescPlatCapDesc {
+                b_reserved: 0x00,
+                plat_cap_uuid: PlatCapUUID {
+                    g0: 0xD8DD60DFu32.to_le_bytes(),
+                    g1: 0x4589u16.to_le_bytes(),
+                    g2: 0x4CC7u16.to_le_bytes(),
+                    g3: 0x9CD2u16.to_be_bytes(),
+                    g4: [0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F],
+                },
+                dw_win_version: 0x06030000u32.to_le_bytes(),
+                // 在编写好 MsOs20DescSet 之后，记得把总字节数填写回来
+                w_ms_os_desc_set_total_length: (size_of::<MsOs20DescSet>() as u16).to_le_bytes(),
+                b_ms_vendor_code: 0x20,
+                b_alt_enum_code: 0x00,
+            };
+    }
+
+    // 在我们实际编写 Vendor Descriptor 的时候
+    // struct 是由顶至底编写的
+    // struct 的大部分数值也是由顶自底填写的
+    // 但是所有的 w_total_length 是由底至顶填写的
+    // 最后的最后，顶部的 w_total_length 需要填写回 BOS 描述符的 w_ms_os_desc_set_total_length 字段
+    mod ms_os_20_desc_set {
+        use core::mem::size_of;
+
+        #[repr(C)]
+        pub(super) struct MsOs20DescSet {
+            w_length: [u8; 2],
+            w_desc_type: [u8; 2],
+            dw_win_version: [u8; 4],
+            w_total_length: [u8; 2],
+            conf_subset: [ConfSubset; 1],
+        }
+
+        #[repr(C)]
+        struct ConfSubset {
+            w_length: [u8; 2],
+            w_desc_type: [u8; 2],
+            b_conf_value: u8,
+            b_reserved: u8,
+            w_total_length: [u8; 2],
+            func_subset: [FuncSubset; 2],
+        }
+
+        #[repr(C)]
+        struct FuncSubset {
+            w_length: [u8; 2],
+            w_desc_type: [u8; 2],
+            b_first_iface: u8,
+            b_reserved: u8,
+            w_subset_length: [u8; 2],
+            comp_id: CompatID,
+        }
+
+        #[repr(C)]
+        struct CompatID {
+            w_length: [u8; 2],
+            w_desc_type: [u8; 2],
+            compat_id: [u8; 8],
+            sub_compat_id: [u8; 8],
+        }
+
+        // 可以注意看一下这里的结构，是与我们最上面说的层级结构相映照的
+        pub(super) const MS_OS_20_DESC_SET: MsOs20DescSet = MsOs20DescSet {
+            w_length: ((size_of::<MsOs20DescSet>() - size_of::<[ConfSubset; 1]>()) as u16)
+                .to_le_bytes(),
+            w_desc_type: 0x00u16.to_le_bytes(),
+            dw_win_version: 0x06030000u32.to_le_bytes(),
+            w_total_length: (size_of::<MsOs20DescSet>() as u16).to_le_bytes(),
+            conf_subset: [ConfSubset {
+                w_length: ((size_of::<ConfSubset>() - size_of::<[FuncSubset; 2]>()) as u16)
+                    .to_le_bytes(),
+                // 该描述符类型被称为 MS_OS_20_SUBSET_HEADER_CONFIGURATION
+                w_desc_type: 0x01u16.to_le_bytes(),
+                b_conf_value: 0,
+                b_reserved: 0x00,
+                w_total_length: (size_of::<ConfSubset>() as u16).to_le_bytes(),
+                func_subset: [
+                    FuncSubset {
+                        w_length: ((size_of::<FuncSubset>() - size_of::<CompatID>()) as u16)
+                            .to_le_bytes(),
+                        // 该描述符类型被称为 MS_OS_20_SUBSET_HEADER_FUNCTION
+                        w_desc_type: 0x02u16.to_le_bytes(),
+                        b_first_iface: 0,
+                        b_reserved: 0x00,
+                        w_subset_length: (size_of::<FuncSubset>() as u16).to_le_bytes(),
+                        comp_id: CompatID {
+                            w_length: (size_of::<CompatID>() as u16).to_le_bytes(),
+                            w_desc_type: 0x03u16.to_le_bytes(),
+                            compat_id: *b"WINUSB\0\0",
+                            sub_compat_id: [0x00; 8],
+                        },
+                    },
+                    FuncSubset {
+                        w_length: ((size_of::<FuncSubset>() - size_of::<CompatID>()) as u16)
+                            .to_le_bytes(),
+                        w_desc_type: 0x02u16.to_le_bytes(),
+                        b_first_iface: 1,
+                        b_reserved: 0x00,
+                        w_subset_length: (size_of::<FuncSubset>() as u16).to_le_bytes(),
+                        comp_id: CompatID {
+                            w_length: (size_of::<CompatID>() as u16).to_le_bytes(),
+                            w_desc_type: 0x03u16.to_le_bytes(),
+                            compat_id: *b"WINUSB\0\0",
+                            sub_compat_id: [0x00; 8],
+                        },
+                    },
+                ],
+            }],
+        };
+    }
+
+    unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
+        core::slice::from_raw_parts((p as *const T) as *const u8, core::mem::size_of::<T>())
+    }
+
     use crate::my_usb_class::{
         bos_desc::MS_OS_20_DESC_PLAT_CAP_DESC, ms_os_20_desc_set::MS_OS_20_DESC_SET,
     };
@@ -88,138 +230,6 @@ mod my_usb_class {
                     .unwrap();
             }
         }
-    }
-
-    mod bos_desc {
-        #[repr(C)]
-        pub(super) struct MsOs20DescPlatCapDesc {
-            b_reserved: u8,
-            plat_cap_uuid: PlatCapUUID,
-            dw_win_version: [u8; 4],
-            w_ms_os_desc_set_total_length: [u8; 2],
-            b_ms_vendor_code: u8,
-            b_alt_enum_code: u8,
-        }
-
-        #[repr(C)]
-        struct PlatCapUUID {
-            g0: [u8; 4],
-            g1: [u8; 2],
-            g2: [u8; 2],
-            g4: [u8; 2],
-            g5: [u8; 6],
-        }
-
-        pub(super) const MS_OS_20_DESC_PLAT_CAP_DESC: MsOs20DescPlatCapDesc =
-            MsOs20DescPlatCapDesc {
-                b_reserved: 0x00,
-                plat_cap_uuid: PlatCapUUID {
-                    g0: [0xDF, 0x60, 0xDD, 0xD8],
-                    g1: [0x89, 0x45],
-                    g2: [0xC7, 0x4C],
-                    g4: [0x9C, 0xD2],
-                    g5: [0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F],
-                },
-                dw_win_version: [0x00, 0x00, 0x03, 0x06],
-                // 在编写好 MsOs20DescSet 之后，记得把总字节数填写回来
-                w_ms_os_desc_set_total_length: [10 + 8 + 2 * (20 + 8), 0x00],
-                b_ms_vendor_code: 0x20,
-                b_alt_enum_code: 0x00,
-            };
-    }
-
-    // 在我们实际编写 Vendor Descriptor 的时候
-    // struct 是由顶至底编写的
-    // struct 的大部分数值也是由顶自底填写的
-    // 但是所有的 w_total_length 是由底至顶填写的
-    // 最后的最后，顶部的 w_total_length 需要填写回 BOS 描述符的 w_ms_os_desc_set_total_length 字段
-    mod ms_os_20_desc_set {
-
-        #[repr(C)]
-        pub(super) struct MsOs20DescSet {
-            w_length: [u8; 2],
-            w_desc_type: [u8; 2],
-            dw_win_version: [u8; 4],
-            w_total_length: [u8; 2],
-            conf_subset: [ConfSubset; 1],
-        }
-
-        #[repr(C)]
-        struct ConfSubset {
-            w_length: [u8; 2],
-            w_desc_type: [u8; 2],
-            b_conf_value: u8,
-            b_reserved: u8,
-            w_total_length: [u8; 2],
-            func_subset: [FuncSubset; 2],
-        }
-
-        #[repr(C)]
-        struct FuncSubset {
-            w_length: [u8; 2],
-            w_desc_type: [u8; 2],
-            b_first_iface: u8,
-            b_reserved: u8,
-            w_subset_length: [u8; 2],
-            comp_id: CompatID,
-        }
-
-        #[repr(C)]
-        struct CompatID {
-            w_length: [u8; 2],
-            w_desc_type: [u8; 2],
-            compat_id: [u8; 8],
-            sub_compat_id: [u8; 8],
-        }
-
-        // 可以注意看一下这里的结构，是与我们最上面说的层级结构相映照的
-        pub(super) const MS_OS_20_DESC_SET: MsOs20DescSet = MsOs20DescSet {
-            w_length: [10, 0x00],
-            w_desc_type: [0x00, 0x00],
-            dw_win_version: [0x00, 0x00, 0x03, 0x06],
-            w_total_length: [10 + 8 + 2 * (20 + 8), 0x00],
-            conf_subset: [ConfSubset {
-                w_length: [8, 0x00],
-                // 该描述符类型被称为 MS_OS_20_SUBSET_HEADER_CONFIGURATION
-                w_desc_type: [0x01, 0x00],
-                b_conf_value: 0,
-                b_reserved: 0x00,
-                w_total_length: [8 + 2 * (20 + 8), 0x00],
-                func_subset: [
-                    FuncSubset {
-                        w_length: [8, 0x00],
-                        // 该描述符类型被称为 MS_OS_20_SUBSET_HEADER_FUNCTION
-                        w_desc_type: [0x02, 0x00],
-                        b_first_iface: 0,
-                        b_reserved: 0x00,
-                        w_subset_length: [8 + 20, 0x00],
-                        comp_id: CompatID {
-                            w_length: [20, 0x00],
-                            w_desc_type: [0x03, 0x00],
-                            compat_id: [b'W', b'I', b'N', b'U', b'S', b'B', b'\0', 0x00],
-                            sub_compat_id: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-                        },
-                    },
-                    FuncSubset {
-                        w_length: [8, 0x00],
-                        w_desc_type: [0x02, 0x00],
-                        b_first_iface: 1,
-                        b_reserved: 0x00,
-                        w_subset_length: [8 + 20, 0x00],
-                        comp_id: CompatID {
-                            w_length: [20, 0x00],
-                            w_desc_type: [0x03, 0x00],
-                            compat_id: [b'W', b'I', b'N', b'U', b'S', b'B', b'\0', 0x00],
-                            sub_compat_id: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-                        },
-                    },
-                ],
-            }],
-        };
-    }
-
-    unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-        core::slice::from_raw_parts((p as *const T) as *const u8, core::mem::size_of::<T>())
     }
 }
 

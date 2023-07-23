@@ -38,6 +38,8 @@ use usb_device::{class_prelude::*, prelude::*};
 
 // 在这个案例中，USBClass 的构成更加重要，因此放到了最前面
 mod my_usb_class {
+    use core::mem::size_of;
+
     use usb_device::{class_prelude::*, control::RequestType};
 
     use crate::my_usb_class::{
@@ -45,6 +47,10 @@ mod my_usb_class {
     };
 
     mod bos_desc {
+        use core::mem::size_of;
+
+        use super::ms_os_20_desc_set::MsOs20DescSet;
+
         // BOS 回复结构体
         // 注意到，除了 UUID 的部分字段，如果是多字节字段值，则需要以**小端序**的顺序排列
         #[repr(C)]
@@ -74,36 +80,39 @@ mod my_usb_class {
         }
 
         // PlatformCapabilityUUID
-        // MS 对这里的这个特别的 16 位的值
-        // 有特殊的称呼 MS_OS_20_Platform_Capability_ID
-        // 另外，我们在 MS OS 2.0 Desc Spec 中看到的，以字符串表示的 UUID
-        // 其前三个字段都是大端序表示的，因此这里需要翻转，
-        // 而最后两个字段是小端序表示的，是不需要再次翻转的
+        // 在 USB 3.2 Spec 中，该 UUID 用于确定一个特定的
         #[repr(C)]
         struct PlatCapUUID {
             g0: [u8; 4],
             g1: [u8; 2],
             g2: [u8; 2],
-            g4: [u8; 2],
-            g5: [u8; 6],
+            g3: [u8; 2],
+            g4: [u8; 6],
         }
 
         // 注意到，除了 UUID 的部分字段，如果是多字节字段值，则需要以**小端序**的顺序排列
         pub(super) const MS_OS_20_DESC_PLAT_CAP_DESC: MsOs20DescPlatCapDesc =
             MsOs20DescPlatCapDesc {
                 b_reserved: 0x00,
-
+                // MS 对这里的这个特别的 16 位的值
+                // 有特殊的称呼 MS_OS_20_Platform_Capability_ID
+                // 另外，我们在 MS OS 2.0 Desc Spec 中看到的，以字符串表示的 UUID
+                // 其前三个字段都是大端序表示的，因此这里需要翻转，
+                // 而最后两个字段是小端序表示的，是不需要再次翻转的
                 plat_cap_uuid: PlatCapUUID {
-                    g0: [0xDF, 0x60, 0xDD, 0xD8],
-                    g1: [0x89, 0x45],
-                    g2: [0xC7, 0x4C],
-                    g4: [0x9C, 0xD2],
-                    g5: [0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F],
+                    g0: 0xD8DD60DFu32.to_le_bytes(),
+                    g1: 0x4589u16.to_le_bytes(),
+                    g2: 0x4CC7u16.to_le_bytes(),
+                    g3: 0x9CD2u16.to_be_bytes(), // 注意我们这里用的是转大端序，不是转小端序
+                    // 最后一节没有写成某个整数的原因，是因为 6 个 byte，是不能恰好填充某个内置的数据类型的
+                    // 因此就单独写成数组的形式了
+                    g4: [0x65, 0x9D, 0x9E, 0x64, 0x8A, 0x9F],
                 },
                 // dwWinVersion 共 4 位
-                dw_win_version: [0x00, 0x00, 0x03, 0x06],
+                dw_win_version: 0x06030000u32.to_le_bytes(),
                 // MS_OS_DESC_SET 的回复实际总长度
-                w_ms_os_desc_set_total_length: [10 + 20, 0x00],
+                // 由于 NsOS20DescSet 的结构体的长度是固定的，且不含指针，因此我们可以直接使用 core::mem::size_of() 函数来取得结构体的大小
+                w_ms_os_desc_set_total_length: (size_of::<MsOs20DescSet>() as u16).to_le_bytes(),
                 // 请求 MS_OS_20_DESC_SET 实际所需的 Vendor Code
                 b_ms_vendor_code: 0x20,
                 // Alternative Enumerator 号，0x00 表示不存在
@@ -112,6 +121,7 @@ mod my_usb_class {
     }
 
     mod ms_os_20_desc_set {
+        use core::mem::size_of;
 
         // 当 Host 发来 MS_OS_20_DESC_SET 相关的请求时
         // 我们应该回复给 Host 的 Desc
@@ -147,21 +157,22 @@ mod my_usb_class {
         }
 
         pub(super) const MS_OS_20_DESC_SET: MsOs20DescSet = MsOs20DescSet {
-            // 头部长度，长度应该为 10 byte
-            w_length: [10, 0x00],
+            // 头部长度，在 MS OS 2.0 Spec 中，这个长度是固定的，
+            // 不过我们可以这么计算，结构体的总长度 减去 载荷的长度 就是 头部的长度
+            w_length: ((size_of::<MsOs20DescSet>() - size_of::<CompatID>()) as u16).to_le_bytes(),
             // 其值的名称固定为 MSOS20_SET_HEADER_DESCRIPTOR，数值固定为 0x00
-            w_desc_type: [0x00, 0x00],
-            dw_win_version: [0x00, 0x00, 0x03, 0x06],
-            w_total_length: [10 + 20, 0x00], // [158, 0x00]
+            w_desc_type: 0x00u16.to_le_bytes(),
+            dw_win_version: 0x06030000u32.to_le_bytes(),
+            w_total_length: (size_of::<MsOs20DescSet>() as u16).to_le_bytes(),
             comp_id: CompatID {
-                w_length: [20, 0x00],
+                w_length: (size_of::<CompatID>() as u16).to_le_bytes(),
                 // 其值的名称固定为 MS_OS_20_FEATURE_COMPATBLE_ID，数值固定为 0x03
-                w_desc_type: [0x03, 0x00],
+                w_desc_type: 0x03u16.to_le_bytes(),
                 // 这个 Compatible ID 的值是微软定义的，其值参见：
                 // https://learn.microsoft.com/en-us/windows-hardware/drivers/usbcon/automatic-installation-of-winusb#setting-the-compatible-id
                 // 如果一个设备兼容 WinUSB，则此处必须这样设置
-                compat_id: [b'W', b'I', b'N', b'U', b'S', b'B', b'\0', 0x00],
-                sub_compat_id: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+                compat_id: *b"WINUSB\0\0",
+                sub_compat_id: [0x00; 8],
             },
         };
     }
@@ -169,7 +180,7 @@ mod my_usb_class {
     // 参考 https://stackoverflow.com/a/42186553
     // 将任何一个指针指向的内存，直接拷贝为一个 byte array
     unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-        core::slice::from_raw_parts((p as *const T) as *const u8, core::mem::size_of::<T>())
+        core::slice::from_raw_parts((p as *const T) as *const u8, size_of::<T>())
     }
 
     pub(super) struct MyUSBClass {
@@ -274,14 +285,14 @@ fn main() -> ! {
 
     let usb_device_builder = UsbDeviceBuilder::new(usb_bus_alloc, UsbVidPid(0x1209, 0x0001));
 
-    let usb_dev = usb_device_builder
+    let usb_device = usb_device_builder
         .manufacturer("random manufacturer")
         .product("random product")
         .serial_number("random serial")
         .build();
 
     cortex_m::interrupt::free(|cs| {
-        G_USB_DEVICE.borrow(cs).borrow_mut().replace(usb_dev);
+        G_USB_DEVICE.borrow(cs).borrow_mut().replace(usb_device);
         G_MY_USB_CLASS.borrow(cs).borrow_mut().replace(my_usb_class);
     });
 
