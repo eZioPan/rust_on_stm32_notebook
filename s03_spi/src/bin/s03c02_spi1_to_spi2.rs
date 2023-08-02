@@ -120,6 +120,7 @@ fn main() -> ! {
         }
     });
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -152,9 +153,8 @@ fn SPI1() {
                         // 注意目前 hal 提供的方法为阻塞式发送，不结束不返回
                         master
                             .send(0xFFAA)
-                            .and_then(|_| {
+                            .map(|_| {
                                 G_SENT.borrow(cs).set(true);
-                                Ok(())
                             })
                             .unwrap();
                     }

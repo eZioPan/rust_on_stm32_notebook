@@ -45,7 +45,7 @@ use rtt_target::{rprintln, rtt_init_print};
 // 这个引入非必须，但由于本 project 的其它文件使用了 stm32f4xx_hal 这个库
 // 导致链接本文件时，需要这个库提供的一些文件，因此这里倒入一下
 // 正常情况下，本文件不需要使用 stm32f4xx_hal 这个库
-#[allow(unused_imports)]
+#[allow(unused_imports, clippy::single_component_path_imports)]
 use stm32f4xx_hal;
 
 #[cortex_m_rt::entry]
@@ -85,6 +85,11 @@ fn main() -> ! {
 
         // 这里我们让核心空转来等待震荡源稳定（到 8MHz）
         // 而且可以记录一下等待的圈数
+        //
+        // 而且由于 RCC 是独立于 Cortex 核心的处理单元
+        // 因此，对于运行在 Cortex 核心上的 Rust 程序来说，即便我们读取的是 const 的裸指针
+        // 该地址的值也可能被 RCC 模块修改
+        #[allow(clippy::while_immutable_condition)]
         while *(RCC_CR__ADDRESS as *const u32) & 1 << RCC_CR__HSERDY__BIT == 0 {
             wait_count += 1;
         }
@@ -96,11 +101,12 @@ fn main() -> ! {
         // SW 为 SWitch 的缩写，这两个 bit 用来切换 SYSCLK 的来源
         const RCC_CFGR__SW__BIT: u32 = 0;
         // 注意 SW 是两位的
-        *(RCC_CFGR__ADDRESS as *mut u32) |= 01 << RCC_CFGR__SW__BIT;
+        *(RCC_CFGR__ADDRESS as *mut u32) |= 0b01 << RCC_CFGR__SW__BIT;
 
         const RCC_CFGR__SWS_BIT: u32 = 2;
         // 等待系统时钟切换完成
-        while *(RCC_CFGR__ADDRESS as *const u32) & 01 << RCC_CFGR__SWS_BIT != 01 {}
+        #[allow(clippy::while_immutable_condition)]
+        while (*(RCC_CFGR__ADDRESS as *const u32) >> RCC_CFGR__SWS_BIT) & 0b01 != 0b01 {}
 
         // 启用 APB2 总线上 ADC1 的时钟
         // APB2ENR 为 APB2 ENable Register 的缩写
@@ -151,5 +157,6 @@ fn main() -> ! {
         }
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

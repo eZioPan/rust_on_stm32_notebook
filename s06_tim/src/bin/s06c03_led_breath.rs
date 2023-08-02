@@ -74,6 +74,7 @@ fn main() -> ! {
         tim3_timer(&dp);
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -283,6 +284,7 @@ fn TIM3() {
                 }
             }
             Direction::Dimming => {
+                #[allow(clippy::identity_op)]
                 if last_value >= 0 + STEP {
                     last_value - STEP
                 } else {

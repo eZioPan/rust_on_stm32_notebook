@@ -75,5 +75,6 @@ fn main() -> ! {
         rprintln!("MC1&2_NOT_OUT\r");
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

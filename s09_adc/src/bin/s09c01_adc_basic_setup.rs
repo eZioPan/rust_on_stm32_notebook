@@ -111,6 +111,7 @@ fn main() -> ! {
     // 设置 TIM2 的 CC2 输出
     setup_tim2();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

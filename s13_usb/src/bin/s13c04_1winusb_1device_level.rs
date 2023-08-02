@@ -298,6 +298,7 @@ fn main() -> ! {
 
     unsafe { NVIC::unmask(interrupt::OTG_FS) }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

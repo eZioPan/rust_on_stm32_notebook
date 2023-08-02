@@ -270,6 +270,8 @@ fn main() -> ! {
                 rprintln!("DMA2 STREAM0 Tranfer Complete\r");
 
                 rprintln!("dst_list end value: {:?}\r", dst_list);
+
+                #[allow(clippy::empty_loop)]
                 loop {}
             }
         }

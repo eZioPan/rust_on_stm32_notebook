@@ -105,5 +105,7 @@ fn main() -> ! {
 
         rprintln!("PLL clock is output on GPIO PA8\r");
     }
+
+    #[allow(clippy::empty_loop)]
     loop {}
 }

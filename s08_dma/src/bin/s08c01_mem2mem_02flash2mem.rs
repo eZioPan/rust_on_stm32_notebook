@@ -112,6 +112,7 @@ fn main() -> ! {
             unsafe { NVIC::unmask(interrupt::DMA2_STREAM0) }
         });
 
+        #[allow(clippy::empty_loop)]
         loop {}
     } else {
         panic!("Cannot Get Peripheral\r\n");

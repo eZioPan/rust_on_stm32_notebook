@@ -44,6 +44,7 @@ fn main() -> ! {
         w
     });
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

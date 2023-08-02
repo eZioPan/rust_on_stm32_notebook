@@ -99,6 +99,7 @@ fn main() -> ! {
     unsafe { NVIC::unmask(interrupt::OTG_FS) }
 
     // 主循环里我们什么都不用写
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

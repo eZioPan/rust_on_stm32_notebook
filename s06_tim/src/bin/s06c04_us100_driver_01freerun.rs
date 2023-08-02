@@ -104,6 +104,7 @@ fn main() -> ! {
         G_DP.borrow(cs).borrow_mut().replace(dp);
     });
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

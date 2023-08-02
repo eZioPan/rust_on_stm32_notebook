@@ -171,6 +171,7 @@ fn main() -> ! {
         master.cr1.modify(|_, w| w.start().start());
     });
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

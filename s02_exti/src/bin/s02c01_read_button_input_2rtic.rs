@@ -114,6 +114,7 @@ mod app {
     // rtic 特有的属性，idle task 是运行在启用了外部中断的环境下的，而且该函数永远不能返回
     #[idle(local = [], shared = [])]
     fn idle(_ctx: idle::Context) -> ! {
+        #[allow(clippy::empty_loop)]
         loop {
             // WFI: Wait For Interrupt
             // 是一种 cortex-m 的低功耗模式，

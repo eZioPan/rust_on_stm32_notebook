@@ -58,7 +58,7 @@
 use defmt_rtt as _;
 use panic_probe as _;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, clippy::single_component_path_imports)]
 use stm32f4;
 
 #[cortex_m_rt::entry]

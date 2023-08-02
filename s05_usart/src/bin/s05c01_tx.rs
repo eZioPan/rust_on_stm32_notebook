@@ -93,6 +93,7 @@ fn main() -> ! {
             dp.TIM2.cr1.modify(|_, w| w.cen().enabled());
         });
 
+        #[allow(clippy::empty_loop)]
         loop {}
     } else {
         panic!("Cannot Get Peripheral\r\n");

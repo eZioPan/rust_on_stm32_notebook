@@ -117,6 +117,8 @@ fn main() -> ! {
         // SPE: SPI Enabled
         dp.SPI2.cr1.modify(|_, w| w.spe().enabled());
     }
+
+    #[allow(clippy::empty_loop)]
     loop {
         // 如果不处于 debug 编译模式，则启用 WFI: Wait For Interrupt
         // 在该模式下，CPU 计算单元的时钟会被挂起，直到发生了中断，才会启动 CPU 时钟，并处理中断

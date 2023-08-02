@@ -124,5 +124,7 @@ fn main() -> ! {
         Total = HSE_WaitCount + VOS_WaitCount + PLL_WaitCount + SYSCLK_WaitCount; // 经过测试，这个方案 CPU 空转次数大概在 170 次左右
         rprintln!("Wait Count:\r\nHSE_WaitCount: {}\r\nVOS_WaitCount: {}\r\nPLL_WaitCount: {}\r\nSYSCLK_WaitCount:{}\r\nTotal: {}\r\n", HSE_WaitCount, VOS_WaitCount, PLL_WaitCount, SYSCLK_WaitCount, Total);
     }
+
+    #[allow(clippy::empty_loop)]
     loop {}
 }

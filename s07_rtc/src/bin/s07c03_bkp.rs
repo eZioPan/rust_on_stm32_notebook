@@ -41,5 +41,6 @@ fn main() -> ! {
         rprintln!("RTC_BKP0R value is {:#010X?}", bkp0);
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

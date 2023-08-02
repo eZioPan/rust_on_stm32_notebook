@@ -51,6 +51,7 @@ fn main() -> ! {
 
         prepare_echo_term();
 
+        #[allow(clippy::empty_loop)]
         loop {}
     } else {
         panic!("Cannot Get Peripherals");

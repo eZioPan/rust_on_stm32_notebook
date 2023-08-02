@@ -87,7 +87,7 @@ pub fn read_busy_flag(dp: &pac::Peripherals) -> u8 {
 
 pub fn wait_for_idle(dp: &pac::Peripherals, cp: &pac::CorePeripherals, poll_interval_ms: u32) {
     while read_busy_flag(dp).checked_shr(7).unwrap() & 1 == 1 {
-        delay(&cp, poll_interval_ms);
+        delay(cp, poll_interval_ms);
     }
 }
 

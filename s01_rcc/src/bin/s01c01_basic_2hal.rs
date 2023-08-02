@@ -43,5 +43,6 @@ fn main() -> ! {
     // 最后我们也是将配置写入底层的 ADC Configuration Register 上
     adc::Adc::adc1(device_peripherals.ADC1, true, adc1_config);
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

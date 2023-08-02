@@ -35,6 +35,7 @@ fn main() -> ! {
     // 启用 RTC 闹钟的中断从 EXTI 到 NVIC 的通路
     enable_alarm_interrupt();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
@@ -254,6 +255,7 @@ fn RTC_ALARM() {
         };
 
         let dt = dr >> 4 & 0b11;
+        #[allow(clippy::identity_op)]
         let du = dr >> 0 & 0b1111;
 
         let ht = tr >> 20 & 0b11;
@@ -261,6 +263,7 @@ fn RTC_ALARM() {
         let mnt = tr >> 12 & 0b111;
         let mnu = tr >> 8 & 0b1111;
         let st = tr >> 4 & 0b111;
+        #[allow(clippy::identity_op)]
         let su = tr >> 0 & 0b1111;
 
         // 第二行打印结束之后通过 ESC[A 向上移动一行，然后回到行首

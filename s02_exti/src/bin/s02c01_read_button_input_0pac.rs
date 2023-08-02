@@ -139,6 +139,7 @@ fn main() -> ! {
             .modify(|_, w| w.ot13().push_pull());
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

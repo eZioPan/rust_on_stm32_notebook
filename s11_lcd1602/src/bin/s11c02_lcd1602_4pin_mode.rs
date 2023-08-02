@@ -68,5 +68,6 @@ fn main() -> ! {
         wait_and_send_8bit(&dp, &cp, 1, 0, data, 10);
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

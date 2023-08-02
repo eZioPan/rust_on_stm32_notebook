@@ -86,7 +86,7 @@ mod webusb_desc {
     impl<B: UsbBus> UsbClass<B> for MyUSBClass {
         fn get_bos_descriptors(&self, writer: &mut BosWriter) -> usb_device::Result<()> {
             defmt::info!("write BOS desc");
-            writer.capability(0x5, unsafe { &any_as_u8_slice(&WEBUSB_PLAT_CAP_DESC) })
+            writer.capability(0x5, unsafe { any_as_u8_slice(&WEBUSB_PLAT_CAP_DESC) })
         }
 
         fn get_configuration_descriptors(
@@ -110,7 +110,7 @@ mod webusb_desc {
                 && req.index == 0x02
             {
                 defmt::println!("Sending WebUSB_DESC");
-                xfer.accept_with_static(unsafe { &any_as_u8_slice(&WEBUSB_VENDOR_DESC) })
+                xfer.accept_with_static(unsafe { any_as_u8_slice(&WEBUSB_VENDOR_DESC) })
                     .unwrap();
             }
         }
@@ -171,9 +171,9 @@ fn main() -> ! {
     USB_BUS_ALLOC.replace(UsbBusType::new(usb, EP_OUT_MEM));
     let usb_bus_alloc = USB_BUS_ALLOC.as_ref().unwrap();
 
-    let my_usb_class = MyUSBClass::new(&usb_bus_alloc);
+    let my_usb_class = MyUSBClass::new(usb_bus_alloc);
 
-    let usb_device_builder = UsbDeviceBuilder::new(&usb_bus_alloc, UsbVidPid(0x1209, 0x0001));
+    let usb_device_builder = UsbDeviceBuilder::new(usb_bus_alloc, UsbVidPid(0x1209, 0x0001));
 
     let usb_device = usb_device_builder
         .manufacturer("random manufacturer")
@@ -188,6 +188,7 @@ fn main() -> ! {
 
     unsafe { NVIC::unmask(interrupt::OTG_FS) }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

@@ -70,11 +70,11 @@ fn main() -> ! {
         dp.GPIOA.afrl.modify(|_, w| w.afrl5().af1());
         dp.GPIOA.moder.modify(|_, w| w.moder5().alternate());
 
-        // 然后，由于 APB2 的时钟频率和预分频器的取值会确定 TIM2 的输入时钟频率
-        // 而我们又要对一个手按下的按钮 debouncing，因此这里可以故意将 APB2 的时钟频率设置的小一点
+        // 然后，由于 APB1 的时钟频率和预分频器的取值会确定 TIM2 的输入时钟频率
+        // 而我们又要对一个手按下的按钮 debouncing，因此这里可以故意将 APB1 的时钟频率设置的小一点
         // 让 debouncing 的时间值大一点
-        // 将 APB2 的预分频器设置为 /16，此时 APB2 Timer Clock 会运行在 8 MHz / 16 * 2 = 1 MHz 的频率
-        dp.RCC.cfgr.modify(|_, w| w.ppre2().div16());
+        // 将 APB1 的预分频器设置为 /16，此时 APB1 Timer Clock 会运行在 8 MHz / 16 * 2 = 1 MHz 的频率
+        dp.RCC.cfgr.modify(|_, w| w.ppre1().div16());
         dp.RCC.dckcfgr.modify(|_, w| w.timpre().mul2());
 
         // 开启 TIM2 的时钟
@@ -121,6 +121,7 @@ fn main() -> ! {
         rprint!("\x1b[2K\rDetect External Input: 0\r"); // 清理当前的行，并给出一个默认信息
     }
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 
