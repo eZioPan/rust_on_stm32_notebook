@@ -1,0 +1,94 @@
+= Embedded Flash
+
+准确来说，我们这里是通过 OpenOCD 的 telnet 控制界面，模拟一次**程序的刷写过程**
+
+== 目标
+
+向 STM32F411RE 的 0x08000000 处写入 32 bit 的数据
+
+== 步骤
+
+[start=0]
+. 这里我们假设读者通过 OpenOCD 连接上 MCU，并且通过 telnet 来控制 OpenOCD 的运行
+
+.. OpenOCD 正在运行，且检测到目标芯片
+.. 观察 OpenOCD 在终端中的输出，应该可以看到如下字样 +
+`Info : Listening on port **XXXX** for telnet connections`
+.. 通过 telnet 控制 OpenOCD +
+`telnet 127.0.0.1 XXXX` +
+XXXX 填写 OpenOCD 监听 telnet 连接的端口号
+. 进入 Halt 状态（等价于 OpenOCD 的 `halt` 指令） +
+`write_memory 0xE000EDF0 32 0xA05F0023`
+** 该内存地址与含义来自
+... **Armv7-M Architecture Reference Manual** 文档
+... **Armv7-M Debug** 章
+... **Debug system Registers** 节
+... **Debug Halting Control and Status Register, DHCSR** 小节
+** 在 DAP 连接上之后，会自动将该寄存器的 `C_DEBUGEN` 位 置 1，我们需要作的是将 `C_SNAPSTALL` 和 `C_HALT` 位置 1
+** 不过我们还需要额外的操作，那就是在写入这个寄存器的时候，我们需要同时向该寄存器的高 16 位写入密钥 `0xA05F`，该高 16 位在写操作时被称为 `DBGKEY`。再加上我们要写入的 `0b00100011`，总效果就是写入值为 `0xA05F0023`
+** 另，退出 Halt 模式的方法为 +
+`write_memory 0xE000EDF0 32 0xA05F0001` +
+它会保留 `C_DEBUGEN`，但清理掉其他状态，等价于 OpenOCD 的 `resume` 指令
+
+. 确认 Cortex 核心进入 Halt 状态（`DHCSR` 寄存器） +
+`read_memory 0xE000EDF2 8 1` +
+观察到返回值中 `S_HALT` 应该被设置为 1
+
+. 读取 FLASH 锁状态（ STM32F411RE 的 Reference Manual 的 `FLASH_CR` 寄存器） +
+`read_memory 0x40023C13 8 1` +
+返回中 `LOCK` 位应该为 1
+
+. 解锁 FLASH（`FLASH_KEYR` 寄存器） +
+连续输入以下两个密钥值
+.. `write_memory 0x40023C04 32 0x45670123`
+.. `write_memory 0x40023C04 32 0xCDEF89AB`
+
+. 读取 FLASH 锁状态（`FLASH_CR` 寄存器） +
+`read_memory 0x40023C13 8 1` +
+如果返回的 `LOCK` 位的值不为 0 +
+则必须要 RESET 芯片后，再次执行解锁操作
+.. 触发软件重启的方法为（Cortex-M4 Programming Manual 的 `AIRCR` 寄存器） +
+`write_memory 0xE000ED0C 32 0x05FA0004` +
+其中高位的 `0x05FA` 是 `AIRCR` 寄存器的写入密钥，低位的 `0x0004` 是向 `SYSRESETREQ` 位写入 1，从而触发重启的指令
+
+. 闪存在写过数据之后，若要再次写入数据，需要先执行清理，再执行写入 +
+这里我们执行清理过程
+.. 设置清理 Sector 0 的内容（`FLASH_CR` 寄存器） +
+`write_memory 0x40023C10 8 0b0000010`
+*** `SNB` 字段设置为 0，表示清理 Flash 的第一个 Sector
+*** `MER` 位设置为 0，且 `SER` 位设置位 1，表示执行的是 Sector 级别的擦除
+.. 开启清理流程（`FLASH_CR` 寄存器） +
+`write_memory 0x40023C12 8 1` +
+设置 `STRT` 位，表示开始擦除操作
+.. 确认 FLASH 操作完成（`FLASH_SR` 寄存器） +
+`read_memory 0x40023C0E 8 1` +
+`BSY` 位应该置 0
+.. 确认第一区清理完成（Sector 0 地址） +
+`read_memory 0x08000000 32 0xFF` +
+0x0800 0000 - 0x0800 3FFF 都是主存 Sector 0 的地址 +
+读数应该全部是 0xF +
+这里我们象征性地检查了前 0xFF 个 32 bit 的空间的状态
+
+. 接着我们要做的是向 Flash 中写入一些数据
+.. 设置单次写入长度为 32 bit（`FLASH_CR` 寄存器） +
+`write_memory 0x40023C11 8 0b10` +
+`PSIZE` 字段为 `0b10`
+.. 开启 FLASH 的写入（`FLASH_CR` 寄存器） +
+`write_memory 0x40023C10 8 0x1` +
+设置 `PG` 位为 1
+.. 随便写点东西（Sector 0 地址） +
+`write_memory 0x08000000 32 0x20000000`
+.. 确认写入正常（Sector 0 地址） +
+`read_memory 0x08000000 32 1` +
+它应该返回我们写入的 `0x20000000` 这个数据
+.. 关闭写入（`FLASH_CR` 寄存器） +
+`write_memory 0x40023C10 8 0x0` +
+设置 `PG` 位为 0
+.. 检查写入已关闭（`FLASH_CR` 寄存器） +
+`read_memory 0x40023C10 8 1` +
+`PG` 位应该为 0
+.. 锁定 FLASH 写入（`FLASH_CR` 寄存器） +
+`write_memory 0x40023C13 8 0b10000000`
+.. 确认 FLASH 写入锁定（`FLASH_CR` 寄存器） +
+`read_memory 0x40023C13 8 1` +
+`LOCK` 位应置 1
