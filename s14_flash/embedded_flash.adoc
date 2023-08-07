@@ -26,9 +26,16 @@ XXXX 填写 OpenOCD 监听 telnet 连接的端口号
 ... **Debug Halting Control and Status Register, DHCSR** 小节
 ** 在 DAP 连接上之后，会自动将该寄存器的 `C_DEBUGEN` 位 置 1，我们需要作的是将 `C_SNAPSTALL` 和 `C_HALT` 位置 1
 ** 不过我们还需要额外的操作，那就是在写入这个寄存器的时候，我们需要同时向该寄存器的高 16 位写入密钥 `0xA05F`，该高 16 位在写操作时被称为 `DBGKEY`。再加上我们要写入的 `0b00100011`，总效果就是写入值为 `0xA05F0023`
-** 另，退出 Halt 模式的方法为 +
+** 另
+*** 退出 Halt 模式的方法为 +
 `write_memory 0xE000EDF0 32 0xA05F0001` +
 它会保留 `C_DEBUGEN`，但清理掉其他状态，等价于 OpenOCD 的 `resume` 指令
+*** OpenOCD 的 reset halt 指令等价于
+.... 设置 `DEMCR` 寄存器的 `VC_CORERESET` 位为 1 +
+`write_memory 0xE000EDFC 8 0x1`
+.... 确认 `DHCSR` 寄存器的 `C_DEBUGEN` 位为 1 +
+`read_memory 0xE000EDF0 8 1`
+.... 执行 Reset
 
 . 确认 Cortex 核心进入 Halt 状态（`DHCSR` 寄存器） +
 `read_memory 0xE000EDF2 8 1` +
@@ -47,7 +54,7 @@ XXXX 填写 OpenOCD 监听 telnet 连接的端口号
 `read_memory 0x40023C13 8 1` +
 如果返回的 `LOCK` 位的值不为 0 +
 则必须要 RESET 芯片后，再次执行解锁操作
-.. 触发软件重启的方法为（Cortex-M4 Programming Manual 的 `AIRCR` 寄存器） +
+** 另，触发软件重启的方法为（Cortex-M4 Programming Manual 的 `AIRCR` 寄存器） +
 `write_memory 0xE000ED0C 32 0x05FA0004` +
 其中高位的 `0x05FA` 是 `AIRCR` 寄存器的写入密钥，低位的 `0x0004` 是向 `SYSRESETREQ` 位写入 1，从而触发重启的指令
 
