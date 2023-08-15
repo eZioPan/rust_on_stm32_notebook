@@ -73,9 +73,13 @@ fn main() -> ! {
         // 名为 PWR interface，挂载在 APB1 总线上
         dp.RCC.apb1enr.modify(|_, w| w.pwren().enabled());
         // VOS: Voltage scaling Output Selection
+        // 这里有两点要注意，
+        // 第一，VOS 位的值，在 System Reset 之后，会重置为 Scale 2
+        // 第二，VOS 位的值仅在 PLL 启用后才会被硬件读取，
+        // 在 PLL 未启动时，硬件实际的 VOS 是运行在 Scale 3 模式下的
+        //
+        // PWR_CRS_VOSRDY 需要等到 PLL 启动后才能进行检测
         dp.PWR.cr.modify(|_, w| unsafe { w.vos().bits(0b11) });
-        // 注意，VOS 只有在实际启动 PLL 后才会执行
-        // 因此 PWR_CRS_VOSRDY 需要等到 PLL 启动后才能侦测
 
         // 启动锁相环
         dp.RCC.cr.modify(|_, w| w.pllon().on());
