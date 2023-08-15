@@ -16,6 +16,7 @@ members = [
     "s13_usb",
     "s15_crc",
     "s16_watchdog",
+    "s17_low_power",
 ]
 
 [workspace.package]

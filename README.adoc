@@ -81,6 +81,10 @@ OpenOCD 返回的 debug 信息的详细程度 +
 不带参数时，显示当前的 debug_level +
 默认级别为 2
 
+stm32f4x.cpu arp_examine:::
+当你的 DAPLink 无法自动检测到开发板时，使用该命令，可以强制 OpenOCD 再次检测目标板 +
+这个方法在测试低功耗模式（low-power mode）时会比较有用
+
 == 常见问题
 
 Q00: 就学习 STM32F411RET6 最重要的文档是哪些
