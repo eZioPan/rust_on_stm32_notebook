@@ -5,7 +5,6 @@
 //! 依照 STM32F411 的勘误表（Errata sheet）（我手上这份编号是 ES0287）
 //! Debugging Sleep/Stop mode with WFE/WFI entry 节的说法
 //! 我们可以启用 DMA 让 AHB 在 Sleep 的时候保持活跃
-//!
 //! 以便我们可以随时从 SRAM 中获取数据
 
 #![no_std]
