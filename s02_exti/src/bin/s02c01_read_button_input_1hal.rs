@@ -4,7 +4,7 @@
 //! 这里我们要完成一个简单的操作，每当一个按钮被按下，就切换 LED 灯的亮灭，而且还会额外向 RTT 打印按钮被按下的总次数
 //! 让处理器不断轮询 GPIO 自然是不合适的，因此这里我们尝试使用中断来处理
 
-//! 在 stm32f411RET6 的 block diagram 的图中，APB2 总线上没有标注了 SYSCFG 模块，请注意
+//! 在 stm32f412RET6 的 block diagram 的图中，APB2 总线上没有标注了 SYSCFG 模块，请注意
 
 #![no_std]
 #![no_main]

@@ -131,7 +131,7 @@ fn main() -> ! {
         .require_pll48clk()
         .freeze();
 
-    // STM32F411RET6 上，USB 的 D+ 和 D- 引脚对应的是 PA12 和 PA11
+    // STM32F412RET6 上，USB 的 D+ 和 D- 引脚对应的是 PA12 和 PA11
     let gpioa = dp.GPIOA.split();
 
     // 使用 stm32f4xx_hal 提供的 USB struct

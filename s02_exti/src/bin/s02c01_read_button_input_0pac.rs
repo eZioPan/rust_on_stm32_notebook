@@ -4,7 +4,7 @@
 //! 这里我们要完成一个简单的操作，每当一个按钮被按下，就切换 LED 灯的亮灭
 //! 让处理器不断轮询 GPIO 自然是不合适的，因此这里我们尝试使用中断来处理
 
-//! 在 stm32f411RET6 的 block diagram 的图中，APB2 总线上没有标注了 SYSCFG 模块，请注意
+//! 在 stm32f412RET6 的 block diagram 的图中，APB2 总线上没有标注了 SYSCFG 模块，请注意
 
 #![no_std]
 #![no_main]
@@ -55,13 +55,13 @@ fn main() -> ! {
 
         // 见 Reference Manual 的 External interrupt/event GPIO mapping 图
         //
-        // 在 STM32F411 上，外部中断控制器的寄存器有 4 个，分别为 EXTICR1 到 EXTICR4
+        // 在 STM32F412 上，外部中断控制器的寄存器有 4 个，分别为 EXTICR1 到 EXTICR4
         //（EXTernal Interrupt Controller Register 的缩写）
         // 与常规的寄存器先选 Port 再选 Pin 不同，EXTICR 是先选 Pin 再选 Port，
         // 也就是说假设我们想让 PD2 作为外部中断源，那我们先要找到 Pin 2 **所在的** EXTICR1，
         // 然后找到与 Pin 2 准确关联的 EXTI2 这个四位，接着才是将这四个位的值设置为 Port D 对应的值 0x3。
         // 上面我们提到，Pin 2 所在的 EXTICR1，这里我们需要注意的是
-        // STM32F411 上总计只有 16 个外部中断
+        // STM32F412 上总计只有 16 个外部中断
         // （4 个 EXTICR，每个 EXTICR 有 4 个分块，每个分块 4 位（每个 EXTICR 的高 16 位保留不用））
         // 不能同时覆盖所有的 Pin，于是 EXIT 控制器选择了一个方法，
         // 那就是所有 Port 中具有相同编号的 Pin（比如 PA2, PB2, PC2 ... PH2），同一时刻下，只能挑一个 Port 下的 Pin 作为外部中断的来源。
@@ -91,7 +91,7 @@ fn main() -> ! {
         // imr 是 interrupt mask register 的缩写
         device_peripheral.EXTI.imr.modify(|_, w| w.mr0().unmasked());
 
-        // 见 Reference manual 的 Vector table for STM32F411xC/E 表
+        // 见 Reference manual 的 Vector table for STM32F412xx 表
         //
         // 好了，到此位置，片上外设的配置就全部完成了，但是，Cortex 的运算部分还不能直接处理这个信号
         //
@@ -108,9 +108,9 @@ fn main() -> ! {
         //
         // 在这里，我们要关掉 NVIC 中对应的触发掩码，以便让中断可以触发上面所说的中断处理流程
         // 如上所说，这个掩码是 Cortex 核心内部的，因此要使用的变量为 core_periperal
-        // 这里我们就不能只参考 STM32F411 的手册了，还需要同时参考 Cortex-M4 Devices Generic User Guide 这本手册了
+        // 这里我们就不能只参考 STM32F412 的手册了，还需要同时参考 Cortex-M4 Devices Generic User Guide 这本手册了
         // 依照 Cortex-M4 的手册，我们要设置的是名为 NVIC_ISER（NVIC Interrupt Set-Enable Reegisters）的寄存器
-        // 然后依照 STM32F411 的 Reference Manual，EXTI0 处于向量表的 Position 6，
+        // 然后依照 STM32F412 的 Reference Manual，EXTI0 处于向量表的 Position 6，
         // 而第 6 号 bit 处于编号为 0 的 ISER（Position 0~31 都属于 0 号 ISER），于是
         // 我们要将 ISER0 的索引为 6 的位设置位 1
         //
