@@ -1,4 +1,4 @@
-// 说明见 s01_rcc 的 memory.x
+/* 说明见 s01_rcc 的 memory.x */
 
 MEMORY
 {
