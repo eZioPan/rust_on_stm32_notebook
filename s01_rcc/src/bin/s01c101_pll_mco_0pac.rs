@@ -92,10 +92,9 @@ fn main() -> ! {
         // 已经提交了 issue https://github.com/stm32-rs/stm32-rs/issues/826
         // 这里我们只能手动配置一下寄存器了
         unsafe {
-            #[allow(non_snake_case)]
-            let SYSCFG_CMPCR__ADDRESS = dp.SYSCFG.cmpcr.as_ptr();
-            const SYSCFG_CMPCR_CMP_PD__BIT: u32 = 0;
-            *SYSCFG_CMPCR__ADDRESS |= 1 << SYSCFG_CMPCR_CMP_PD__BIT;
+            let cmpcr = dp.SYSCFG.cmpcr.as_ptr();
+            let cur_value = cmpcr.read_volatile();
+            cmpcr.write_volatile(cur_value | (1 << 0));
         }
         // 等待 compensation cell 稳定
         while dp.SYSCFG.cmpcr.read().ready().bit_is_clear() {}

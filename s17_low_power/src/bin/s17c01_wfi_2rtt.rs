@@ -2,7 +2,7 @@
 //!
 //! 实际上，除了启用 DBG_SLEEP 以外，我们还得额外设置一个东西，才能让 RTT 正常被 DAPLink 拉取
 //!
-//! 依照 STM32F411 的勘误表（Errata sheet）（我手上这份编号是 ES0287）
+//! 依照 STM32F412 的勘误表（Errata sheet）（我手上这份编号是 ES0287）
 //! Debugging Sleep/Stop mode with WFE/WFI entry 节的说法
 //! 我们可以启用 DMA 让 AHB 在 Sleep 的时候保持活跃
 //! 以便我们可以随时从 SRAM 中获取数据

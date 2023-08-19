@@ -49,23 +49,23 @@ fn main() -> ! {
         dp.RCC.cr.modify(|_, w| w.hseon().on());
         while dp.RCC.cr.read().hserdy().is_not_ready() {}
 
-        // 由于我的核心板上的 HSE 是 8 MHz 的，比 HSI 的 16 MHz 要低
+        // 由于我的核心板上的 HSE 是 12 MHz 的，比 HSI 的 16 MHz 要低
         // 在默认的配置下，先切换到 HSE 在配置分频器也没有什么问题
         dp.RCC.cfgr.modify(|_, w| w.sw().hse());
         while !dp.RCC.cfgr.read().sws().is_hse() {}
 
-        // 将 AHB PRE 的值设置为 /8，
-        // 这样 HCLK 的频率即为 1 MHz
+        // 将 AHB PRE 的值设置为 /4，
+        // 这样 HCLK 的频率即为 3 MHz
         // 将 APB2 PRE 的值设置为 /1，
-        // 这样 PCLK2 和 APB2 Timer Clock 的频率均为 1 MHz
+        // 这样 PCLK2 和 APB2 Timer Clock 的频率均为 3 MHz
         //
-        // 注意，这里将 HCLK 降低为 1 MHz 并非处于节能的考量，
+        // 注意，这里将 HCLK 降低为 3 MHz 并非处于节能的考量，
         // 只是为了让后面的计算简单一些而已
         //
         // HPRE: AHB PREscaler
         // PPRE2: APB PREscaler 2
         dp.RCC.cfgr.modify(|_, w| {
-            w.hpre().div8();
+            w.hpre().div4();
             w.ppre2().div1();
             w
         });
@@ -101,9 +101,9 @@ fn main() -> ! {
         // 在本案例中，由于 TIM2 的计数器是仅向下计数的
         // 因此，最终中断的频率为 f(CK_CNT)/(TIM2_ARR +1)
 
-        // 因为 1 MHz = 1000 Hz * 1000 Hz，因此这里我们直接让
+        // 因为 3 MHz = 3000 * 1000 Hz，因此这里我们直接让
         // PSC: PreSCaler
-        dp.TIM2.psc.write(|w| w.psc().bits(999));
+        dp.TIM2.psc.write(|w| w.psc().bits(2999));
         // ARR: AutoReload Register
         dp.TIM2.arr.write(|w| w.arr().bits(999));
 

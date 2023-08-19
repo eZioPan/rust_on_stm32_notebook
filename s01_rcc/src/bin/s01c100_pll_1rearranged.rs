@@ -32,7 +32,7 @@ fn main() -> ! {
         // 预先启动 HSE，由于晶振稳定需要一段时间，这段时间我们完全可以去做其它的事情
         // 比如配置 PLL，配置电源电压模式
         {
-            // 启用外部 8 MHz 晶振
+            // 启用外部 12 MHz 晶振
             dp.RCC.cr.modify(|_, w| w.hseon().on());
 
             // 配置 PLL 寄存器，配置电源电压
@@ -41,7 +41,7 @@ fn main() -> ! {
                 dp.RCC.pllcfgr.modify(|_, w| {
                     w.pllsrc().hse();
                     unsafe {
-                        w.pllm().bits(4);
+                        w.pllm().bits(6);
                         w.plln().bits(100);
                     }
                     w.pllp().div2();

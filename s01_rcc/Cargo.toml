@@ -12,8 +12,8 @@ edition.workspace = true
 cortex-m-rt = "*"
 
 # STM32F4xx 系列片上外设的抽象层
-# 特别指定了 STM32F411 作为具体的芯片
-stm32f4xx-hal = { version = "*", features = ["stm32f411"] }
+# 特别指定了 STM32F412 作为具体的芯片
+stm32f4xx-hal = { version = "*", features = ["stm32f412"] }
 
 # 启用 RTT
 rtt-target = { version = "*", features = ["cortex-m"] }

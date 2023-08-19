@@ -15,11 +15,11 @@ cortex-m = "*"
 cortex-m-rt = "*"
 
 # STM32F4xx 系列片上外设的抽象层
-# 特别指定了 STM32F411 作为具体的芯片
+# 特别指定了 STM32F412 作为具体的芯片
 # PR #677 新增了对 TIM 计数器的写函数，可以方便我们修改 Encoder 的计数值
 # 这里先 track git，等待下一次的 Release
 stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal", features = [
-    "stm32f411",
+    "stm32f412",
 ] }
 
 # 启用 RTT

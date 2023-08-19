@@ -15,8 +15,8 @@ cortex-m = "*"
 cortex-m-rt = "*"
 
 # STM32F4xx 系列片上外设的抽象层
-# 特别指定了 STM32F411 作为具体的芯片，并启用了对 rtic 的支持（以使用 cortex-m-rtic crate）
-stm32f4xx-hal = { version = "*", features = ["stm32f411", "rtic"] }
+# 特别指定了 STM32F412 作为具体的芯片，并启用了对 rtic 的支持（以使用 cortex-m-rtic crate）
+stm32f4xx-hal = { version = "*", features = ["stm32f412", "rtic"] }
 
 # 启用 RTT
 rtt-target = { version = "*", features = ["cortex-m"] }

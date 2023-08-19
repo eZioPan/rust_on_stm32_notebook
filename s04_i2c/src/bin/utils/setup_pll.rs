@@ -3,14 +3,14 @@ use stm32f4xx_hal::pac::Peripherals;
 pub fn setup(dp: &Peripherals) {
     setup_hse(dp);
 
-    // 这里我们让 PLL 的输入时钟是 8 MHz 的 HSE，
-    // 依照 PLLM 位 的说明，HSE 经过 PLLM 后最好得到 2 MHz，因此 PLLM 设置为 /4 模式
+    // 这里我们让 PLL 的输入时钟是 16 MHz 的 HSE，
+    // 依照 PLLM 位 的说明，HSE 经过 PLLM 后最好得到 2 MHz，因此 PLLM 设置为 /6 模式
     // 接着是 PLLN 位，经过 PLLN 输出的频率需要在 100 ~ 432 MHz 之间，这里我们取 256 MHz，因此 PLLN 的倍率为 128
     // 最后我们要获得 64 MHz 的输出，因此我们要将 PLLP 设置为 /4 模式，将 256 MHz 降低到 64 MHz
     dp.RCC.pllcfgr.modify(|_, w| {
         w.pllsrc().hse();
         unsafe {
-            w.pllm().bits(4);
+            w.pllm().bits(6);
             w.plln().bits(128);
             w.pllp().div4();
         }

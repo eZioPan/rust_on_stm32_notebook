@@ -24,7 +24,7 @@
 //! RTC 的第一层写保护来自 PWR 模块，每次系统 Reset 后，PWR_CR 寄存器的 DBP 字段都会置 0，以锁定整个 RTC 的修改权限
 //! 因此要操作 RTC 首先要做的就是从 APB1 上启动 PWR 的时钟，并通过向 PWR_CR 的 DBP 字段写入 1 来关闭 RTC 模块的保护
 //! 之后我们要选择 RTC 模块的输入时钟（RTCCLK），这里我们选择了 HSE（可以让 RTC 更精确一些），于是我们就要启动 HSE，并等待 HSE 稳定
-//! 之后是，RTCCLK 的频率必须不大于 1 MHz，这里我们就取 1 MHz，而 HSE 为 8 MHz，因此我们还需要配置 RCC_CFGR 的 RTCPRE 字段，让 RTCCLK 降低到 1 MHz
+//! 之后是，RTCCLK 的频率必须不大于 1 MHz，这里我们就取 1 MHz，而 HSE 为 12 MHz，因此我们还需要配置 RCC_CFGR 的 RTCPRE 字段，让 RTCCLK 降低到 1 MHz
 //! 在配置好 RTCPRE 之后才能通过 RCC_BDCR 的 RTCSEL 将时钟切换到 HSE，并通过 RTCEN 启动 RTC 模块，注意，一旦启用了 RTC，那么在断电之前，RTC 都无法被关闭
 //!
 //! 之后就是 RTC 模块内部的寄存器配置了
@@ -95,7 +95,7 @@ fn main() -> ! {
     if let (Some(dp), Some(cp)) = (pac::Peripherals::take(), pac::CorePeripherals::take()) {
         // 初始化 RTC 设置
         {
-            // 把 8 MHz 的 HSE 拉起来
+            // 把 12 MHz 的 HSE 拉起来
             dp.RCC.cr.modify(|_, w| w.hseon().on());
             while dp.RCC.cr.read().hserdy().is_not_ready() {}
 
@@ -109,7 +109,7 @@ fn main() -> ! {
 
             // 依照 Reference Manual 的说明，在使用 HSE 作为 RTC 模块的输入源的时候
             // 必须将 HSE 频率降低为 1 MHz 才能输入 RTC 模块
-            // 由于我手上的外部晶振的频率是 8 MHz，因此这里 RTCPRE 的值选择 /8
+            // 由于我手上的外部晶振的频率是 12 MHz，因此这里 RTCPRE 的值选择 /12
             // RTCPRE: 特别用于 HSE 的预分频器分频比
             dp.RCC.cfgr.modify(|_, w| w.rtcpre().bits(8));
             // 设置好 RTCPRE 之后，切换 RTC 时钟的输入源，并启用 RTC 模块的时钟
@@ -167,7 +167,7 @@ fn main() -> ! {
             // 初始化日历日期
             // 本案例中，我们将日期设置为 2023 年 4 月 6 日
             // 注意：该寄存器使用 BCD 码进行日期编码
-            // 注意：本芯片（STM32F411RET6）的 RTC 不计算日历的前两位（千年和百年）
+            // 注意：本芯片（STM32F412RET6）的 RTC 不计算日历的前两位（千年和百年）
             // DR: Date Register
             // 位名称中的 t 表示 tens，十位；u 表示 unit，个位
             dp.RTC.dr.modify(|_, w| {
@@ -273,7 +273,7 @@ fn main() -> ! {
             // 2. 为了保证单次读取既能获得正确时间，APB1 时钟的频率应该不小于 7 倍 RTC 时钟的频率
             // 3. 若 APB1 时钟的频率小于等于 7 倍 RTC 时钟的频率，则应该执行至少两次读取，若相邻的两次读取的值相同，才能保证读取的正确性
             //
-            // 在这个案例中，我们的 RTC 时钟的频率为 1 MHz，为了方便，我们直接将 HSE 设置为 SYSCLK，默认情况下，APB1 就运行在 8 MHz 了。刚好是大于 7 MHz 的。
+            // 在这个案例中，我们的 RTC 时钟的频率为 1 MHz，为了方便，我们直接将 HSE 设置为 SYSCLK，默认情况下，APB1 就运行在 12 MHz 了。是大于 7 MHz 的。
             dp.RCC.cfgr.modify(|_, w| w.sw().hse());
             while !dp.RCC.cfgr.read().sws().is_hse() {}
         }

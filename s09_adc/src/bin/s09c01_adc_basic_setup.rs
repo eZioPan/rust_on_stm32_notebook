@@ -3,20 +3,20 @@
 //! ADC Analog to Digital Converter 是一种采样模拟电压，并转换为数字信号的设备
 //!
 //!
-//! 【重要】：虽然 STM32F411 的大部分引脚都是 FT（Five volt Tolerant）的，但在 analog 模式下，他们均不是 FT 的，
+//! 【重要】：虽然 STM32F412 的大部分引脚都是 FT（Five volt Tolerant）的，但在 analog 模式下，他们均不是 FT 的，
 //!           切勿将高于 3.3V 的电压直接引入 analog 模式下的 GPIO 引脚
 //!
 //!
 //! ADC channel：
 //! ADC 的采样对象，主要是 GPIO 输入的电压值，另外该包含一些内部模拟数据，
 //! 而且，一个 ADC 可以采样多个信号来源，因此必然有一个 ADC 中每个采样器编号与 GPIO 引脚编号对应的关系
-//! 就 ADC 的部分来说，它被称为 ADC Channel，STM32F411RET6 这块芯片的 ADC 模块共有 19 个通道（编号 0-18），
+//! 就 ADC 的部分来说，它被称为 ADC Channel，STM32F412RET6 这块芯片的 ADC 模块共有 19 个通道（编号 0-18），
 //! 其中前 16 个分配给了 GPIO，另外 3 个分给了内部温度计、内部参考电压、V_{BAT} 电压值
 //! 一旦涉及到 GPIO，就必然有一张表，将 GPIO 编号与 ADC channel 对应起来，
-//! 这张表就是 datasheet 的 STM32F411xC/xE pin definitions，
+//! 这张表就是 datasheet 的 STM32F412xx pin definitions，
 //! 它的最后一列 Additional functions 就记录了 GPIO 引脚对应的 ADC channel
 //! 有一点需要注意的是，与 Reference Manual 中以 ADCx_INy 的形式来表示 ADC x 的 y 通道不同，
-//! STM32F411xC/xE pin definitions 中的叫法为 ADCx_y，没有 IN 这两个字母
+//! STM32F412xC/xE pin definitions 中的叫法为 ADCx_y，没有 IN 这两个字母
 //!
 //!
 //! ADC sequence and Scan Mode：
@@ -122,17 +122,17 @@ fn setup_pll() {
 
         setup_hse();
 
-        // 这里我们让 PLL 的输入时钟是 8 MHz 的 HSE，
-        // 依照 PLLM 位 的说明，HSE 经过 PLLM 后最好得到 2 MHz，因此 PLLM 设置为 /4 模式
+        // 这里我们让 PLL 的输入时钟是 12 MHz 的 HSE，
+        // 依照 PLLM 位 的说明，HSE 经过 PLLM 后最好得到 2 MHz，因此 PLLM 设置为 /6 模式
         // 接着是 PLLN 位，经过 PLLN 输出的频率需要在 100 ~ 432 MHz 之间，这里我们取 240 MHz，因此 PLLN 的倍率为 120
         // 最后我们要获得 60 MHz 的输出，因此我们要将 PLLP 设置为 /4 模式，将 240 MHz 降低到 60 MHz
         dp.RCC.pllcfgr.modify(|_, w| {
             w.pllsrc().hse();
             unsafe {
-                w.pllm().bits(4);
+                w.pllm().bits(6);
                 w.plln().bits(120);
-                w.pllp().div4();
             }
+            w.pllp().div4();
             w
         });
 
@@ -253,9 +253,7 @@ fn setup_adc() {
         // 采样通道 6 时，让 ADC 等待 480 个 ADCCLK 周期，再进入量化过程
         // SMPR2: ADC SaMPle time Register 2
         // SMP6: channel 6 SaMPling time selection
-        voltage_sampler
-            .smpr2
-            .modify(|_, w| unsafe { w.smp6().bits(111) });
+        voltage_sampler.smpr2.modify(|_, w| w.smp6().cycles480());
 
         // 使用外部触发源，触发 ADC 单次采样、量化
         voltage_sampler.cr2.modify(|_, w| {
