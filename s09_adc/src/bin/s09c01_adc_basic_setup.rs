@@ -122,17 +122,17 @@ fn setup_pll() {
 
         setup_hse();
 
-        // 这里我们让 PLL 的输入时钟是 8 MHz 的 HSE，
-        // 依照 PLLM 位 的说明，HSE 经过 PLLM 后最好得到 2 MHz，因此 PLLM 设置为 /4 模式
+        // 这里我们让 PLL 的输入时钟是 12 MHz 的 HSE，
+        // 依照 PLLM 位 的说明，HSE 经过 PLLM 后最好得到 2 MHz，因此 PLLM 设置为 /6 模式
         // 接着是 PLLN 位，经过 PLLN 输出的频率需要在 100 ~ 432 MHz 之间，这里我们取 240 MHz，因此 PLLN 的倍率为 120
         // 最后我们要获得 60 MHz 的输出，因此我们要将 PLLP 设置为 /4 模式，将 240 MHz 降低到 60 MHz
         dp.RCC.pllcfgr.modify(|_, w| {
             w.pllsrc().hse();
             unsafe {
-                w.pllm().bits(4);
+                w.pllm().bits(6);
                 w.plln().bits(120);
-                w.pllp().div4();
             }
+            w.pllp().div4();
             w
         });
 

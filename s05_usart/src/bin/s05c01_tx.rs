@@ -160,16 +160,16 @@ fn set_usart1_into_tx_mode(dp: &Peripherals) {
     //
     // 接着我们要计算一下，假设我们的目标波特值为 115200 Baud，根据以下公式
     // baud = f_CK / [ 8 * ( 2 - OVER8 ) * USARTDIV ]
-    // 可知 USARTDIV = f_CK / [ 8 * (2 - OVER8) * baud ] = 8 MHz/[8*(2-1)*115200] ≈ 4.3402778
+    // 可知 USARTDIV = f_CK / [ 8 * (2 - OVER8) * baud ] = 12 MHz/[8*(2-1)*115200] ≈ 13.02083
     //
-    // 于是 USARTDIV 的整数位为 4，小数部分经过计算，其值为 0x5，也就是 5 了
-    // 然后再反推一下，我们可以知道，此时 UART 的真实波特值为 115942 Baud，和目标值 115200 Baud 有大约 (115942-115200)/115200 = 0.644% 的误差
+    // 于是 USARTDIV 的整数位为 4，小数部分经过计算，其值为 0x0，也就是 0 了
+    // 然后再反推一下，我们可以知道，此时 UART 的真实波特值为 115384 Baud，和目标值 115200 Baud 有大约 (115384-115200)/115200 = 0.160% 的误差
     // 其实上面的内容查一下 Reference Manual 中 USART 里的 Error rate 表也能看到，我们自己计算的话，在 USART 的时钟和波特值的选择会自由一些
     //
     // BBR: Baud Rate Register
     serial1.brr.write(|w| {
-        w.div_mantissa().bits(4);
-        w.div_fraction().bits(5);
+        w.div_mantissa().bits(13);
+        w.div_fraction().bits(0);
         w
     });
 
@@ -191,10 +191,10 @@ fn set_tim2_1sec_trigger(dp: &Peripherals) {
     let delay_timer = &dp.TIM2;
 
     delay_timer.cr1.modify(|_, w| w.dir().down());
-    // 计算一下，8 MHz 的输入，1 Hz 的输出
-    // PSC 为 7999，将输入时钟降频到 8 MHz / (7999 + 1) = 1000 Hz
+    // 计算一下，12 MHz 的输入，1 Hz 的输出
+    // PSC 为 7999，将输入时钟降频到 12 MHz / (11999 + 1) = 1000 Hz
     // ARR 为 999，将输出时钟降频到 1000 Hz / (999 + 1) = 1 Hz
-    delay_timer.psc.write(|w| w.psc().bits(7999));
+    delay_timer.psc.write(|w| w.psc().bits(11999));
     delay_timer.arr.write(|w| w.arr().bits(999));
 
     delay_timer.cr1.modify(|_, w| w.urs().counter_only());

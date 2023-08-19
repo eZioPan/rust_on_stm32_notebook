@@ -1,7 +1,7 @@
 //! PLL 锁相环 Phase-Locked Loop
 //! 一种倍增输入时钟的模块
 //!
-//! STM32F412RE 的内部时钟频率为 16 MHz，而我手上的核心板的板载晶振为 8 MHz，要让系统时钟超过这两个频率，则必然要使用到 PLL
+//! STM32F412RE 的内部时钟频率为 16 MHz，而我手上的开发板的板载晶振为 12 MHz，要让系统时钟超过这两个频率，则必然要使用到 PLL
 
 //! 在这个案例中，我们尝试让 STM32F412RE 运行在 HCLK 能支持的最高频率 100 MHz 下
 //!
@@ -36,7 +36,7 @@ fn main() -> ! {
     let mut Total = 0;
 
     if let Some(dp) = pac::Peripherals::take() {
-        // 启用外部 8 MHz 晶振
+        // 启用外部 12 MHz 晶振
         dp.RCC.cr.modify(|_, w| w.hseon().on());
         // 等待外部晶振频率稳定
         while dp.RCC.cr.read().hserdy().is_not_ready() {
@@ -53,13 +53,13 @@ fn main() -> ! {
         // 最终目标是 100 MHz，依照 PLLP 的可取值，VCO_OUTPUT 的取值可以是 200 400 600 800 中的一个
         // 然后由于 VCO_OUTPUT 必须介于 100 到 432 中的一个，因此只剩下 200 以及 400 两个值，这里我们取 200，于是确定了 PLLP 的值为 2
         // VCO_OUTPUT 为 200，而 PLLN 的取值介于 50 ~ 432（这里取 400 就好了），于是 VCO_INPUT 的值的范围为 4 ~ 0.5
-        // 然后，由于 输入源的频率为 8MHz，且 VCO_INPUT 的范围为 4 ~ 0.5，因此 PLLM 的取值范围为 2 至 16
+        // 然后，由于 输入源的频率为 12 MHz，且 VCO_INPUT 的范围为 4 ~ 0.5，因此 PLLM 的取值范围为 6 至 24
         // 这里我们这样取值
-        // 输入频率为 8 MHz，PLLM 寄存器为 4，VCO_INPUT 的频率为 2 MHz，PLLN 寄存器为 100，VCO_OUTPUT 的频率为 200 MHz，PLLP 寄存器的值为 2，最终输出频率为 100 MHz
+        // 输入频率为 12 MHz，PLLM 寄存器为 6，VCO_INPUT 的频率为 2 MHz，PLLN 寄存器为 100，VCO_OUTPUT 的频率为 200 MHz，PLLP 寄存器的值为 2，最终输出频率为 100 MHz
         dp.RCC.pllcfgr.modify(|_, w| {
             w.pllsrc().hse();
             unsafe {
-                w.pllm().bits(4);
+                w.pllm().bits(6);
                 w.plln().bits(100);
             }
             w.pllp().div2();

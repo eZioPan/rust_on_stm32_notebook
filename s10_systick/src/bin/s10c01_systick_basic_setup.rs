@@ -21,7 +21,7 @@ fn main() -> ! {
 
     let dp = pac::Peripherals::take().expect("Cannot take device peripherals");
 
-    // 使用外部晶振，获得 8 MHz 时钟
+    // 使用外部晶振，获得 12 MHz 时钟
     dp.RCC.cr.modify(|_, w| w.hseon().on());
     while dp.RCC.cr.read().hserdy().is_not_ready() {}
     dp.RCC.cfgr.modify(|_, w| w.sw().hse());
@@ -39,10 +39,10 @@ fn main() -> ! {
     // 2. 清理 STK_VAL 寄存器的值
     // 3. 编写 STK_CTRL 寄存器的值
 
-    // 将重载寄存器设置为 999_999，配合上下面的 AHB/8，就能获得 1s 一个下溢出触发的效果
+    // 将重载寄存器设置为 1_499_999，配合上下面的 AHB/8，就能获得 1s 一个下溢出触发的效果
     systick
         .load
-        .modify(|_, w| unsafe { w.reload().bits(999_999) });
+        .modify(|_, w| unsafe { w.reload().bits(1_499_999) });
 
     // 这里我们清理了一下 STK_VAL 的值
     // 虽然这个操作看起来非常没有意义，但实际上，如果我们不清理（准确来说是不写一下）这个寄存器

@@ -130,8 +130,8 @@ fn setup_tim3(dp: &Peripherals) {
 
     let measurer = &dp.TIM3;
 
-    // 8 MHz 输入，预分频为 8 时，输出的频率为 1 MHz，也就是 1 us CNT 产生一个 tick
-    measurer.psc.write(|w| w.psc().bits(8 - 1));
+    // 12 MHz 输入，预分频为 12 时，输出的频率为 3 MHz，也就是 1 us CNT 产生一个 tick
+    measurer.psc.write(|w| w.psc().bits(12 - 1));
 
     // 【重要】如果要配置 ARR，一定要在 ARPE 关闭的情况下配置，否则第一个循环能等死人
     measurer.cr1.modify(|_, w| w.arpe().disabled());
