@@ -17,6 +17,7 @@ members = [
     "s15_crc",
     "s16_watchdog",
     "s17_low_power",
+    "s18_rng",
 ]
 
 [workspace.package]
