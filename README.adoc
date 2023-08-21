@@ -88,16 +88,16 @@ telnet 127.0.0.1 4444
 
 . 如果是手动刷写程序到芯片上，比如通过 OpenOCD 的 telnet 端口刷写程序，那么
 .. **一定要先停机，在刷写**，执行命令 `halt` 可以停机 +
-就刷写程序来说，我们最好执行的是“重置并立刻停机”，对应的命令为 `reset halt`
+就刷写程序来说，我们最好执行的是“重置并立刻停机”，对应的命令为 `reset init`
 .. **对于已经写了数据的部分，需要先清空，再刷写**， 这是由于我们使用的 +
 或者直接使用 `flash write_image erase XXXX.elf`，由 OpenOCD 依照 ELF 文件的情况，自动清除所需要的 Flash
 
 . 有时候，由于我们配置错误、或者编写的错误、或者向量表不正确，会导致程序无法刷写，甚至是停机和重置都无法完成 +
 此时有一个方法可以试一试，那就是使用 OpenOCD 的 telnet 命令行
 .. 通过 telnet 链接上 OpenOCD 后
-.. 在 telnet 中输入 `reset halt`，但不要回车执行
+.. 在 telnet 中输入 `reset init`，但不要回车执行
 .. 接着按住开发板上的 Reset 按钮
-.. 按回车键执行 `reset halt`，之后立刻松开 Reset 按钮
+.. 按回车键执行 `reset init`，之后立刻松开 Reset 按钮
 +
 此时，OpenOCD 大概率会出现 +
 `[stm32f4x.cpu] halted due to debug-request, current mode: Thread` +
@@ -157,7 +157,9 @@ run:::
 halt:::
 重置之后立刻停机
 init:::
-重置之后立刻停机，但会执行 reset-init 脚本
+重置之后立刻停机，但会执行 reset-init 脚本 +
+reset-init 一般出现在 openocd/script/board 和 openocd/script/target 下的 .cfg 文件中 +
+常用于在目标 MCU 重置之后，简单设置与 debug 相关的配置
 --
 +
 不给出参数时，等价于 reset run

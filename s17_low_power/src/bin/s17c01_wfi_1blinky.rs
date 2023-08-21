@@ -57,7 +57,7 @@ fn main() -> ! {
     // 如果我们不设置 GBD_SLEEP 位，则 OpenOCD 会丢失与 MCU 的通信
     // OpenOCD 的表现形式为反复出现下面的字样
     // Conecting DP: stalled AP operation, issuing ABORT
-    // 此时我们需要做的就是，使用 OpenOCD 的 reset halt 命令，在设备重启之后立刻停止其运行，
+    // 此时我们需要做的就是，使用 OpenOCD 的 reset init 命令，在设备重启之后立刻停止其运行，
     // 具体操作见仓库根目录下 README.adoc 的“常见的操作注意事项”节
 
     // DGBMCU 仅被 Power On Reset 重置
