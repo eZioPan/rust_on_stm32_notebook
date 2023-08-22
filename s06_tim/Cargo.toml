@@ -26,5 +26,3 @@ stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal", features = 
 rtt-target = { version = "*", features = ["cortex-m"] }
 # 将 panic 信息通过 RTT 传递给主机
 panic-rtt-target = { version = "*", features = ["cortex-m"] }
-
-embedded-hal = "*"

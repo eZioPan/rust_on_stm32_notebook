@@ -22,3 +22,5 @@ stm32f4xx-hal = { version = "*", features = ["stm32f412"] }
 rtt-target = { version = "*", features = ["cortex-m"] }
 # 将 panic 信息通过 RTT 传递给主机
 panic-rtt-target = { version = "*", features = ["cortex-m"] }
+
+embedded-hal = "1.0.0-alpha.11"

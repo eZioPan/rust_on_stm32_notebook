@@ -37,9 +37,8 @@ use cortex_m_rt::exception;
 use panic_rtt_target as _;
 use rtt_target::{rprint, rtt_init_print};
 
-use embedded_hal::Direction;
-
 use stm32f4xx_hal::{
+    hal::Direction,
     interrupt,
     pac::{CorePeripherals, Peripherals, TIM2},
     prelude::*,
