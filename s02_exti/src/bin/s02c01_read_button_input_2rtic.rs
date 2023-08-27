@@ -37,9 +37,9 @@ mod app {
     // 是一个“资源仓库”，该仓库中的每个值都可以被多个 task 访问
     #[shared]
     struct Shared {
-        // 表示 GPIO PC13，在我们的核心板上与 LED 灯相连
+        // 表示 GPIO PA15，在我们的核心板上与 LED 灯相连
         // 该对象会被 `button_pressed` task 和 `blink_led` task 访问
-        led: gpio::Pin<'C', 13, Output>,
+        led: gpio::Pin<'A', 15, Output>,
         // LED 的逻辑上的开关状态
         // 该对象会被 `button_pressed` task 和 `blink_led` task 访问
         led_state: LEDLogicState,
@@ -80,9 +80,8 @@ mod app {
 
         // 注意，使用 rtic 后，就不再需要使用 NVIC::unmask 了
 
-        let gpio_port_c = ctx.device.GPIOC.split();
-        let led = gpio_port_c
-            .pc13
+        let led = gpio_port_a
+            .pa15
             .into_push_pull_output_in_state(PinState::High);
 
         let clocks = ctx

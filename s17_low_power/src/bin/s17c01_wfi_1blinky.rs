@@ -82,13 +82,11 @@ fn main() -> ! {
 
     rcc.cfgr.modify(|_, w| w.hpre().div8());
 
-    rcc.ahb1enr.modify(|_, w| w.gpiocen().enabled());
+    rcc.ahb1enr.modify(|_, w| w.gpioaen().enabled());
 
-    let gpioc = &dp.GPIOC;
+    let gpioa = &dp.GPIOA;
 
-    gpioc.odr.modify(|_, w| w.odr13().high());
-
-    gpioc.moder.modify(|_, w| w.moder13().output());
+    gpioa.moder.modify(|_, w| w.moder15().output());
 
     rcc.apb1enr.modify(|_, w| w.tim2en().enabled());
 
@@ -106,24 +104,23 @@ fn main() -> ! {
     unsafe { NVIC::unmask(interrupt::TIM2) };
 
     loop {
-        cortex_m::interrupt::free(|cs| {
-            let dp_ref = G_DP.borrow(cs).borrow();
-            let dp = dp_ref.as_ref().unwrap();
-
-            let gpioc = &dp.GPIOC;
-            if gpioc.odr.read().odr13().is_low() {
-                gpioc.odr.modify(|_, w| w.odr13().high())
-            } else {
-                gpioc.odr.modify(|_, w| w.odr13().low())
-            }
-        });
-
         // WFI 这个指令会直接让 MCU 处于 Sleep mode
         //
         // 也就是说，loop {} 循环每次执行完这个指令之后就会停下来，
         // 然后等待任意一个中断跳出 Sleep，然后再次执行循环中的代码
         // 接着又会因为这个指令而进入 Sleep
         cortex_m::asm::wfi();
+
+        cortex_m::interrupt::free(|cs| {
+            let dp_ref = G_DP.borrow(cs).borrow();
+            let dp = dp_ref.as_ref().unwrap();
+
+            let gpioa = &dp.GPIOA;
+
+            gpioa
+                .odr
+                .modify(|r, w| w.odr15().bit(r.odr15().bit() ^ true));
+        });
     }
 }
 

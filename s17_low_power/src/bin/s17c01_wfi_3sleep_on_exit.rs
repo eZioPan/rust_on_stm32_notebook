@@ -52,11 +52,9 @@ fn main() -> ! {
 
     rcc.ahb1enr.modify(|_, w| w.gpiocen().enabled());
 
-    let gpioc = &dp.GPIOC;
+    let gpioa = &dp.GPIOA;
 
-    gpioc.odr.modify(|_, w| w.odr13().high());
-
-    gpioc.moder.modify(|_, w| w.moder13().output());
+    gpioa.moder.modify(|_, w| w.moder15().output());
 
     rcc.apb1enr.modify(|_, w| w.tim2en().enabled());
 
@@ -90,11 +88,9 @@ fn TIM2() {
 
         dp.TIM2.sr.modify(|_, w| w.uif().clear());
 
-        let gpioc = &dp.GPIOC;
-        if gpioc.odr.read().odr13().is_low() {
-            gpioc.odr.modify(|_, w| w.odr13().high())
-        } else {
-            gpioc.odr.modify(|_, w| w.odr13().low())
-        }
+        let gpioa = &dp.GPIOA;
+        gpioa
+            .odr
+            .modify(|r, w| w.odr15().bit(r.odr15().bit() ^ true));
     });
 }

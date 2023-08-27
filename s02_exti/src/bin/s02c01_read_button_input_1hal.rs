@@ -17,7 +17,7 @@ use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 
 use stm32f4xx_hal::{
-    gpio::{gpioa, gpioc, Edge, Input, Output, PinState},
+    gpio::{gpioa, Edge, Input, Output, PinState},
     interrupt,
     pac::{self, NVIC},
     prelude::*,
@@ -39,7 +39,7 @@ use stm32f4xx_hal::{
 static G_BUTTON: Mutex<RefCell<Option<gpioa::PA0<Input>>>> = Mutex::new(RefCell::new(None));
 // G_LED：LED 的 GPIO 量，是中断产生后我们要切换电平的 GPIO
 // 同样使用了 lazy initialization 的设计方案
-static G_LED: Mutex<RefCell<Option<gpioc::PC13<Output>>>> = Mutex::new(RefCell::new(None));
+static G_LED: Mutex<RefCell<Option<gpioa::PA15<Output>>>> = Mutex::new(RefCell::new(None));
 // G_COUNT：一个计数器，方便我们统计中断被触发了多少次，在中断处理函数中会有先读和后写的操作
 // 1. 由于 u32 实现了 Copy，这里我们是不需要使用 RefCell 的，直接使用 Cell 即可
 // 2. 由于我们只是包裹了一个 u32 类型的值，而且初始值我们是确定的，因此无需 lazy initialization，直接初始化即可
@@ -52,9 +52,6 @@ fn main() -> ! {
     if let Some(mut device_peripheral) = pac::Peripherals::take() {
         // 这里就直接启用了 AHB1 上的 GPIO Port A
         let gpioa = device_peripheral.GPIOA.split();
-
-        // 这里就直接启用了 AHB1 上的 GPIO Port C
-        let gpioc = device_peripheral.GPIOC.split();
 
         // 将 GPIO 设置为输入下拉模式，
         let mut button = gpioa.pa0.into_pull_down_input();
@@ -75,8 +72,8 @@ fn main() -> ! {
         // 由于这个操作会启动新的中断，所以该操作被认为是不安全的
         unsafe { NVIC::unmask(interrupt::EXTI0) };
 
-        // 将核心板板载的 LED 灯的引脚 PC13 设置为推挽输出，然后将默认电平设置为高（让灯珠熄灭）
-        let led = gpioc.pc13.into_push_pull_output_in_state(PinState::High);
+        // 将核心板板载的 LED 灯的引脚 PA15 设置为推挽输出，然后将默认电平设置为高（让灯珠熄灭）
+        let led = gpioa.pa15.into_push_pull_output_in_state(PinState::High);
 
         // 最后，由于我们需要将实际的值写入到 static 量中，
         // 我们必须要禁止任何外部中断再此期间干扰 Cortex 核心的运行

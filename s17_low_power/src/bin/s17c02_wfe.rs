@@ -31,9 +31,9 @@ fn main() -> ! {
     dp.DBGMCU.cr.modify(|_, w| w.dbg_sleep().set_bit());
     dp.RCC.ahb1enr.modify(|_, w| w.dma1en().enabled());
 
-    dp.RCC.ahb1enr.modify(|_, w| w.gpiocen().enabled());
-    dp.GPIOC.pupdr.modify(|_, w| w.pupdr13().pull_up());
-    dp.GPIOC.moder.modify(|_, w| w.moder13().output());
+    dp.RCC.ahb1enr.modify(|_, w| w.gpioaen().enabled());
+    dp.GPIOA.pupdr.modify(|_, w| w.pupdr15().pull_up());
+    dp.GPIOA.moder.modify(|_, w| w.moder15().output());
 
     dp.RCC.ahb1enr.modify(|_, w| w.gpioben().enabled());
     dp.GPIOB.pupdr.modify(|_, w| w.pupdr0().pull_down());
@@ -55,11 +55,9 @@ fn main() -> ! {
         rprint!("\x1b[2K\rhello!: {}", cnt);
 
         // 顺便闪一闪灯
-        if dp.GPIOC.odr.read().odr13().is_high() {
-            dp.GPIOC.odr.modify(|_, w| w.odr13().low());
-        } else {
-            dp.GPIOC.odr.modify(|_, w| w.odr13().high());
-        }
+        dp.GPIOA
+            .odr
+            .modify(|r, w| w.odr15().bit(r.odr15().bit() ^ true));
 
         cnt += 1;
     }

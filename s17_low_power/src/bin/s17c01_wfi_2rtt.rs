@@ -42,13 +42,11 @@ fn main() -> ! {
 
     rcc.cfgr.modify(|_, w| w.hpre().div8());
 
-    rcc.ahb1enr.modify(|_, w| w.gpiocen().enabled());
+    rcc.ahb1enr.modify(|_, w| w.gpioaen().enabled());
 
-    let gpioc = &dp.GPIOC;
+    let gpioa = &dp.GPIOA;
 
-    gpioc.odr.modify(|_, w| w.odr13().high());
-
-    gpioc.moder.modify(|_, w| w.moder13().output());
+    gpioa.moder.modify(|_, w| w.moder15().output());
 
     rcc.apb1enr.modify(|_, w| w.tim2en().enabled());
 
@@ -72,12 +70,10 @@ fn main() -> ! {
             let dp_ref = G_DP.borrow(cs).borrow();
             let dp = dp_ref.as_ref().unwrap();
 
-            let gpioc = &dp.GPIOC;
-            if gpioc.odr.read().odr13().is_low() {
-                gpioc.odr.modify(|_, w| w.odr13().high())
-            } else {
-                gpioc.odr.modify(|_, w| w.odr13().low())
-            }
+            let gpioa = &dp.GPIOA;
+            gpioa
+                .odr
+                .modify(|r, w| w.odr15().bit(r.odr15().bit() ^ true));
         });
 
         rprint!("\x1b[2K\rWake up: {}", cnt);

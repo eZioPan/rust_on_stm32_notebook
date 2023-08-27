@@ -122,21 +122,16 @@ fn main() -> ! {
         // 其后还需要实际设置中断发生时，我们期望产生的效果，也就是创建（准确说是覆盖）特定的中断处理函数
         // 不过这得在另一个单独函数中配置了
 
-        // 下面的事情就比较简单了，开启 GPIOC 的时钟，将 PC13 设置为高电平，最后开启推挽输出
+        // 下面的事情就比较简单了，将 PA15 设置为高电平，最后开启推挽输出
         device_peripheral
-            .RCC
-            .ahb1enr
-            .modify(|_, w| w.gpiocen().enabled());
-
-        device_peripheral
-            .GPIOC
+            .GPIOA
             .moder
-            .modify(|_, w| w.moder13().output());
-        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().high());
+            .modify(|_, w| w.moder15().output());
+        device_peripheral.GPIOA.odr.modify(|_, w| w.odr15().high());
         device_peripheral
-            .GPIOC
+            .GPIOA
             .otyper
-            .modify(|_, w| w.ot13().push_pull());
+            .modify(|_, w| w.ot15().push_pull());
     }
 
     #[allow(clippy::empty_loop)]
@@ -160,10 +155,10 @@ unsafe fn EXTI0() {
     // 这一步很重要，由于 Pending bit 不会自动清理，会导致我们一直陷在这个中断处理流程中（ISR - Interrupt Service Routine）
     device_peripheral.EXTI.pr.modify(|_, w| w.pr0().clear());
 
-    //切换 LED 的状态
-    if device_peripheral.GPIOC.odr.read().odr13().bit() {
-        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().low());
-    } else {
-        device_peripheral.GPIOC.odr.modify(|_, w| w.odr13().high());
-    }
+    // 切换 LED 的状态
+    // 翻转是通过 XOR 实现的
+    device_peripheral
+        .GPIOC
+        .odr
+        .modify(|r, w| w.odr15().bit(r.odr15().bit() ^ true));
 }
