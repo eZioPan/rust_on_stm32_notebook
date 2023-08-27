@@ -39,10 +39,7 @@
 //!    不过就不能直接使用 telnet 打印收到的字节了，这里我们需要安装另一个软件
 //!    cargo install defmt-print
 //!    让 defmt-print 来解析 Host 捕获到的 RTT 信息
-//!    不过这里还有一个问题，defmt-print 只能解析来自 stdin 的数据
-//!    因此我们还需要使用一个软件将 OpenOCD RTT Server 转发的信息输入到 defmt-print 中
-//!    这里我们可以使用 netcat 或者 nc 来实现这个目标，这样，在原本 telnet 的窗口，需要使用以下命令
-//!    `netcat 127.0.0.1 8888 | defmt-print -e <ELF 文件路径>` 来打印日志
+//!    `defmt-print -e <ELF 文件路径> tcp --port 8888` 来打印日志
 //!
 //! 7. 其它的注意事项，
 //!    第一个是，由于 defmt-print 是需要读取正确的 ELF 文件，才能正确的显示日志信息
