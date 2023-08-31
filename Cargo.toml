@@ -18,6 +18,7 @@ members = [
     "s16_watchdog",
     "s17_low_power",
     "s18_rng",
+    "s19_quadspi",
 ]
 
 [workspace.package]
