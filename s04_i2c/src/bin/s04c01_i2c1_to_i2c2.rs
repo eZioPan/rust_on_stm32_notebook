@@ -75,12 +75,12 @@
 
 //! 好了，上面说了这么多关于 I2C 通信协议的事情，现在让我们看一看，在这个案例中我们要实现的效果
 //!
-//! I2C1 作为主机，向作为从机的 I2C2 发送一组数据
+//! I2C1 作为主机，向作为从机的 I2C3 发送一组数据
 //! 注意到 I2C 是一个半双工的协议，因此我们不可能只使用一个 I2C 外设就完成传输工作（某一个时刻 I2C 要么发，要么收）
 
 //! 接线图
 //!
-//!     I2C1 <-> I2C2
+//!     I2C1 <-> I2C3
 //! SCL  PB6 <-> PA8  SCL
 //! SDA  PB7 <-> PC9  SDA
 
@@ -139,14 +139,14 @@ fn main() -> ! {
 
     let mut cp = CorePeripherals::take().expect("Cannot Get Core Peripherals");
 
-    // 修改了优先级，I2C2 作为接收方，它的优先级需要高于 I2C1
+    // 修改了优先级，I2C3 作为接收方，它的优先级需要高于 I2C1
     // 这样我们就保证了如果有输入输入，则优先处理接收操作，同时也阻止了发送的产生
     //
     // 优先级关系：
     // Slave_Error > Slave_Int > Master_Error > Master_Int
     unsafe {
-        cp.NVIC.set_priority(interrupt::I2C2_ER, 2);
-        cp.NVIC.set_priority(interrupt::I2C2_EV, 4);
+        cp.NVIC.set_priority(interrupt::I2C3_ER, 2);
+        cp.NVIC.set_priority(interrupt::I2C3_EV, 4);
         cp.NVIC.set_priority(interrupt::I2C1_ER, 8);
         cp.NVIC.set_priority(interrupt::I2C1_EV, 16);
     }
