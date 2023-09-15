@@ -2,9 +2,9 @@
 //! STM32 重置与时钟控制
 //! 时钟可以说是任何一个单片机的核心功能，时钟是一种有稳定周期的脉冲信号
 //! 这个脉冲信号用于协调整个 SoC，甚至是 SoC 外部的部件的协调工作
-//! 特别要注意的是 RCC，也就是产生时钟的硬件，不在 Cortex Core 里面，而是由 STM32 的片上外设提供的（具体可以看 STM32F412RET6 的 datasheet 的 Block Diagram）
+//! 特别要注意的是 RCC，也就是产生时钟的硬件，不在 Cortex Core 里面，而是由 STM32 的片上外设提供的（具体可以看 STM32F413VGT6 的 datasheet 的 Block Diagram）
 //!
-//! 特别注意，不同芯片的 RCC 的内部结构可能不同，这里仅讨论 STM32F412RE 的 RCC 的构造
+//! 特别注意，不同芯片的 RCC 的内部结构可能不同，这里仅讨论 STM32F413VG 的 RCC 的构造
 //!
 //! RCC 本身的结构，可以看 Reference Manual 的 Clock Tree 这张图
 //! 图的中心位置有一个 HSI/HSE/PLLCLK 复用器，它表示了时钟产生的三个（可切换的）源头
@@ -51,7 +51,7 @@ fn main() -> ! {
     rtt_init_print!();
 
     // 仿照 C，直接修改寄存器来实现目标
-    // 所有的内存地址均来自 stm32f412RET6 的 reference manual
+    // 所有的内存地址均来自 STM32F413VGT6 的 reference manual
 
     // 由于要等待外部震荡源的稳定
     // 这里我们可以看看我们要等待多少次循环才能完成这个操作

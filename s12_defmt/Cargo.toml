@@ -7,8 +7,11 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+# 未备注部分见 s01 的 Cargo.toml 的说明
+
 cortex-m-rt = "*"
-stm32f4xx-hal = { version = "*", features = ["stm32f412"] }
+stm32f4xx-hal = { version = "*", features = ["stm32f413"] }
 defmt = "*"
 defmt-rtt = "*"
 panic-probe = { version = "*", features = ["print-defmt"] }

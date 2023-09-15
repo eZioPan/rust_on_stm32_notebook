@@ -2,7 +2,7 @@
 //!
 //! 真随机数生成器
 //!
-//! STM32F412 的真随机数发生器，通过采样内部的模拟噪声源，可以多次生成 32-bit 的随机数
+//! STM32F413 的真随机数发生器，通过采样内部的模拟噪声源，可以多次生成 32-bit 的随机数
 //! 从 data sheet 的 block diagram 我们可以看到 RNG 是挂载在 AHB2 总线上的，而且我们还需要注意到 USB OTG FS 也挂载在 AHB2 总线上
 //! 而且，从 Reference Manual 的 RNG 的 block diagram 和介绍中，我们可以看到，RNG 还需要一个额外的 rng_clk 时钟，
 //! 这个时钟可以看一下 Reference Manual 的 Clock tree 图，它处于图的右沿下侧，上一级是 CK48MSEL，再上一级有两个来源，分别为 PLL 和 PLLI2C

@@ -12,7 +12,7 @@ cortex-m-rt = "*"
 stm32f4xx-hal = { version = "*", features = [
     "defmt",
     "usb_fs",
-    "stm32f412",
+    "stm32f413",
     "rtic",
 ] }
 defmt = "*"

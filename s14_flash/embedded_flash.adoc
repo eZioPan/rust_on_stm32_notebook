@@ -4,7 +4,7 @@
 
 == 目标
 
-向 STM32F412RE 的 0x08000000 处写入 32 bit 的数据
+向 STM32F413VG 的 0x08000000 处写入 32 bit 的数据
 
 == 步骤
 
@@ -41,7 +41,7 @@ XXXX 填写 OpenOCD 监听 telnet 连接的端口号
 `read_memory 0xE000EDF2 8 1` +
 观察到返回值中 `S_HALT` 应该被设置为 1
 
-. 读取 FLASH 锁状态（ STM32F412RE 的 Reference Manual 的 `FLASH_CR` 寄存器） +
+. 读取 FLASH 锁状态（ STM32F413VG 的 Reference Manual 的 `FLASH_CR` 寄存器） +
 `read_memory 0x40023C13 8 1` +
 返回中 `LOCK` 位应该为 1
 

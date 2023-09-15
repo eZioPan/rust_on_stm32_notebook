@@ -8,17 +8,12 @@ edition.workspace = true
 
 [dependencies]
 
-# Cortex-M 内核抽象
-cortex-m = "*"
+# 未备注部分见 s01 的 Cargo.toml 的说明
 
-# Cortex-M 运行时组件
+cortex-m = "*"
 cortex-m-rt = "*"
 
-# STM32F4xx 系列片上外设的抽象层
-# 特别指定了 STM32F412 作为具体的芯片
-stm32f4xx-hal = { version = "*", features = ["stm32f412"] }
+stm32f4xx-hal = { version = "*", features = ["stm32f413"] }
 
-# 启用 RTT
 rtt-target = { version = "*", features = ["cortex-m"] }
-# 将 panic 信息通过 RTT 传递给主机
 panic-rtt-target = { version = "*", features = ["cortex-m"] }

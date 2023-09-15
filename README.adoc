@@ -1,10 +1,10 @@
 = Rust on STM32 Notebook
 
-用 Rust 编写 STM32F412RET6 程序的笔记
+用 Rust 编写 STM32F413VGT6 程序的笔记
 
 [NOTE]
 ====
-这个笔记最早是基于 STM32F411 编写的，不过后来我发现，STM32F412 实际上更便宜，而且功能也多了非常多，于是就全部迁移到 STM32F412 上了
+这个笔记最早是基于 STM32F411RET6 编写的，不过 STM32F411RET6 的模块相对较少，后来又买了一个 STM32F412RET6；再之后为了验证一些操作，因此又买了一个 STM32F413VGT6，目前就将所有的代码都迁移到 F413 上了
 ====
 
 == 一些基础概念
@@ -19,12 +19,12 @@ Cortex-M4:::
 准确来说是 ARM 公司提供的一颗处理器的电路设计稿，而实际生产“这颗处理器”的厂家可以微微修改一些部分 +
 比如 STM32F4 / STM32F7 / STM32G3 系列的 CPU 都基于 Cortex-M4 这个设计稿实现的
 
-STM32F412RET6::
+STM32F413VGT6::
 购买了 ARM 提供的“图纸”的厂家（比如 STMicroelectronics）不仅会制造处理器，还会一同把周边的所需的电路（电源、时钟、一些必要的外部设备）一同设计和制造出来。 +
 而且，由于制造出来的芯片已经包含了 处理器、电源、时钟、基本 IO 等等功能，是一个较为完整的系统，且它们还都封装在一个芯片里， +
 这种芯片又称为 片上系统（System on Chip），英文简称 SoC。
 +
-我们手上的 STM32F412RET6 就是这颗 SoC 的名称，就是那个在电路板上黑色的大方块，上面会写着 STM32F412RET6 的字样
+我们手上的 STM32F413VGT6 就是这颗 SoC 的名称，就是那个在电路板上黑色的大方块，上面会写着 STM32F413VGT6 的字样
 
 开发板 / 最小板 / 核心板::
 而要让这颗 SoC 成功启动，并与我们现有的其它系统交互，它还可以一些简单的外部电路， +
@@ -39,13 +39,13 @@ Cortex-M4 所使用的指令集的名称， +
 
 == 常见问题
 
-Q00: 就学习 STM32F412RET6 最重要的文档是哪些
+Q00: 就学习 STM32F413VGT6 最重要的文档是哪些
 
 A00: 最重要的莫过于
 
-. STM32F412RET6 的 Datasheet，里面包含了 Block Diagram、引脚定义、GPIO 功能表、内存映射关系 等等编程需要知道的信息，以及各种 电气特性 等等硬件设计需要知道的信息。
+. STM32F413VGT6 的 Datasheet，里面包含了 Block Diagram、引脚定义、GPIO 功能表、内存映射关系 等等编程需要知道的信息，以及各种 电气特性 等等硬件设计需要知道的信息。
 
-. STM32F412RET6 的 Reference Manual，里面包含了详尽的设备功能与使用方法，以及对应的寄存器配置 的信息
+. STM32F413VGT6 的 Reference Manual，里面包含了详尽的设备功能与使用方法，以及对应的寄存器配置 的信息
 
 . 如果涉及到 Cortex 核心自带的功能，那么还需要参考 STM32 Cortex®-M4 MCUs and MPUs programming manual 这个文件， +
 比如 SysTick 系统定时器和 NVIC 嵌套向量中断控制器 的内容
@@ -54,7 +54,7 @@ A00: 最重要的莫过于
 
 . 在学习与 Cortex 核心紧密相关的内容时，Armv7-M Architecture Reference Manual 这个文件也常常会出现
 
-Q01: 向 STM32F412RET6 **刷写** 程序需要编程器（Flasher）/排错器（Debugger，比如 STLink/JLink/CMSIS-DAP/DAPLink）么？
+Q01: 向 STM32F413VGT6 **刷写** 程序需要编程器（Flasher）/排错器（Debugger，比如 STLink/JLink/CMSIS-DAP/DAPLink）么？
 
 A01: 理论上不需要，当我们修改 BOOT PIN 至 1 后，会从芯片的 System Memory（是一段 ROM）启动，该程序会启动 USART, USB OTG FS, DFU, I2C, SPI， +
 然后它们各自会监听特殊的信号，然后再进入刷写阶段，（见 ST 文档 AN2606、AN3155、AN3156、AN4286）
@@ -62,18 +62,18 @@ A01: 理论上不需要，当我们修改 BOOT PIN 至 1 后，会从芯片的 S
 
 Q02: 所以排错器是不重要的？
 
-A02: 非也，相反，排错器非常重要，毕竟我们是写程序，那么控制 STM32F412RET6 的运行的能力，比如 随时中断程序的运行、查看栈空间/外设寄存器的功能则非常的重要 +
+A02: 非也，相反，排错器非常重要，毕竟我们是写程序，那么控制 STM32F413VGT6 的运行的能力，比如 随时中断程序的运行、查看栈空间/外设寄存器的功能则非常的重要 +
 这些只能靠 Debugger 实现。
 
 Q03: 串口是 Debug 口么？
 
-A03: 串口不是 STM32F412RET6 原生的 Debug 口，有这种误解是因为，我们经常使用**已经写好程序**的微控制器，而**那些程序**会启动串口打印一些信息。 +
-STM32F412RET6 硬件支持的 Debug 接口就两种 JTAG 和 SW
+A03: 串口不是 STM32F413VGT6 原生的 Debug 口，有这种误解是因为，我们经常使用**已经写好程序**的微控制器，而**那些程序**会启动串口打印一些信息。 +
+STM32F413VGT6 硬件支持的 Debug 接口就两种 JTAG 和 SW
 
 Q04: 如何创建最小程序
 
 A04: 可能必须得使用的库 crate 有 cortex-m-rt、stm32f4 以及 panic-halt 了。 +
-注意，编译成功需要的是 cortex-m-rt 和 panic-halt，不过要能刷写到 STM32F412RE 上，就得加入 stm32f4 这个 crate 了
+注意，编译成功需要的是 cortex-m-rt 和 panic-halt，不过要能刷写到 STM32F413VG 上，就得加入 stm32f4 这个 crate 了
 
 == 常见的操作注意事项
 

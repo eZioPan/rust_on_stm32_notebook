@@ -3,7 +3,7 @@
 而 link.x 的脚本又会要求我们提供一个 memory.x 文件，用来表示单片机的内存映射情况。
 
 内存映射情况一般由芯片的 datasheet 中的 Memory Map 提供
-比如我们手上的 STM32F412RET6，datasheet 上说，
+比如我们手上的 STM32F413VGT6，datasheet 上说，
 Flash Memory 的起始地址为 0x0800 0000，终止地址为 0x0807 FFFF，
 于是 FLASH 的 ORIGIN 要设置为 0x80000000，而总闪存大小为 0x0807 FFFF - 0x0800 0000 + 0x1 = 0x80000 Byte = 512KiB
 同理，
@@ -20,5 +20,5 @@ SRAM 的起始地址为 0x2000 0000，终止地址为 0x2003 FFFF，
 MEMORY
 {
   FLASH : ORIGIN = 0x08000000, LENGTH = 512K
-  RAM : ORIGIN = 0x20000000, LENGTH = 256K
+  RAM : ORIGIN = 0x20000000, LENGTH = 320K
 }

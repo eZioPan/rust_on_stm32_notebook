@@ -75,7 +75,7 @@ Request { direction: In, request_type: Standard, recipient: Device, request: 0x0
 `value: 0x0F00` -> 0x0F 这个值比较特殊，它其实来自于 USB 3.0（目前是 USB 3.2 Specification），表示的是这个描述符的类型为 BOS（Binary device Object Store） +
 是一种二进制编码的、可扩展的、用于在标准 USB Spec 之上，描述和添加 device 层级的能力的框架。
 +
-如果你用 wireshark 捕获过 MCU（STM32F412RE）和 USB 之间的通信，你就会发现， +
+如果你用 wireshark 捕获过 MCU（STM32F413VG）和 USB 之间的通信，你就会发现， +
 在 Host 与 Device 的首次通信中，MCU 返回给 Host 的 Response 中，`bcdUSB` 的值并非 USB 2.0 的 0x0200，而是 0x0210 +
 它并非表示自己是一个符合 USB 2.1 Spec 的设备，它表示的是自己是一个支持 USB 3.0 中 BOS 的 USB 2.0 设备，因此它的 USB 的版本号是大于 0x0200，但小于 0x0300 的
 +

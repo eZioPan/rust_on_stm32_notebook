@@ -16,7 +16,7 @@
 //! SPI 回环测试
 //! 将 SPI2 的 MISO 和 MOSI 通过导线连接在一起，并向 SPI2 发送一次数据，当数据接收完成之后，关闭 SPI2
 
-//! 从 datasheet 上我们可以看出，STM32F412RET6 的引脚中，
+//! 从 datasheet 上我们可以看出，STM32F413VGT6 的引脚中，
 //! 除了电源相关的 VCC、VCCA、VDD、VDD、VBAT、VSS、VSSA、VCAP1，以及与启动模式与重置相关的 BOOT0、NRST 之外，所有的引脚都是 GPIO
 //! 这里引入了一个问题，那就是，SPI 都没有专用的引脚，是怎么和外界通信的
 //!
@@ -52,7 +52,7 @@ fn main() -> ! {
             // MSTR: MaSTeR selection
             w.mstr().master();
             // 单次发送和接收 16 bit 的数据
-            // 注意在 STM32F412RE 上，SPI 的收缓存与发缓存使用同一个寄存器
+            // 注意在 STM32F413VG 上，SPI 的收缓存与发缓存使用同一个寄存器
             // 而 SPI 的收发又是同步的，因此该寄存器（共 32 bit）一分为二，形成了单次最大 16 bit 的收发容量
             // 还可以将缓存设置为 8 bit，这样收发就刚好为 1 个 byte
             // DFF: Data Frame Format

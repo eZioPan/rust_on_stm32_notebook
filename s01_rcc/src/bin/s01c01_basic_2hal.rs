@@ -25,7 +25,7 @@ fn main() -> ! {
     // 使用 stm32f4xx_hal crate 实现类似的效果
     // 准确来说，当我们使用了 stm32f4xx_hal 这个 crate 或者更高抽象层级的 crate 之后，
     // 正常情况下，我们就不再需要与寄存器直接打交道了。
-    // 我们要做的就只是在内存中做好“配置文件”，然后交由 stm32f4xx_hal 来调用 stm32f412 这个 crate 来修改寄存器的状态了
+    // 我们要做的就只是在内存中做好“配置文件”，然后交由 stm32f4xx_hal 来调用 stm32f413 这个 crate 来修改寄存器的状态了
 
     let device_peripherals = pac::Peripherals::take().unwrap();
 
