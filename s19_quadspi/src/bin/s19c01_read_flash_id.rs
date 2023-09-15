@@ -3,7 +3,7 @@
 //! 这里其实有三个大的概念
 //!
 //! 1. QuadSPI 是什么
-//! 2. STM32F412 的 QUADSPI 模块怎么用
+//! 2. STM32F413 的 QUADSPI 模块怎么用
 //! 3. W25Q32JV 要接收什么样的信息
 //!
 //! 让我们一个一个说
@@ -148,6 +148,10 @@ fn main() -> ! {
     // 在默认情况下，CCR 寄存器的值全部为 0，也就是说，QUADSPI 默认处于写模式，且没有配置任何阶段
     // 于是我们这里仅需要配置指令阶段为 single mode，并给出指令号即可
     // 注意，各个阶段到底使用哪种 mode，是需要看外设的 datasheet 的，我们并不能胡乱指定
+
+    // 在设置命令参数之前，先等待 QUADSPI 模块，直到其不繁忙时，再配置
+    // 轮询 BUSY 位来检测模块的繁忙状态
+    while qspi.sr.read().busy().bit_is_set() {}
     qspi.ccr.modify(|_, w| unsafe {
         // 依照 W25Q16 的说明
         // 指令阶段使用 single spi mode
@@ -157,19 +161,14 @@ fn main() -> ! {
         w
     });
 
-    // 然后我们等待上一个命令发送结束
-    // 这里我们靠轮询 BUSY 位，来确定发送是否已经完成
+    // 在必要的等待之后，立刻执行下一个命令 0x99
     while qspi.sr.read().busy().bit_is_set() {}
-    // 接着立刻执行下一个命令 0x99
-    qspi.ccr.modify(|_, w| unsafe {
-        // 这里我们直接写入指令号 0x99
-        //
-        // 一般不推荐这样操作，因为一般情况下，我们并不能确定上一次使用的 CCR 寄存器的状态
-        // 这里由于我们知道上一个操作是写模式，且用 single mode 写了一个 0x66，CCR 的状态是符合这里的要求的
-        // 因此这里我们才能省略配置，仅修改 INSTRUCTION 字段的值
-        w.instruction().bits(0x99);
-        w
-    });
+    // 一般我们不推荐使用 `.modify()` 方法来修改 CCR 寄存器，因为我们不能确保上一个指令中 CCR 的状态
+    //
+    // 这里由于我们知道上一个操作是写模式，且用 single mode 写了一个 0x66，CCR 的状态是符合这里的要求的
+    // 因此这里我们才能省略配置，仅修改 INSTRUCTION 字段的值
+    qspi.ccr
+        .modify(|_, w| unsafe { w.instruction().bits(0x99) });
 
     // 依照 W25Q32 的说明，在触发 Reset 之后，Flash 芯片会有大约 30 us 的时间不会响应任何指令
     // 这里我们就等个 50 us 的时间
@@ -193,7 +192,7 @@ fn main() -> ! {
     // 修改 DLR 的值来确定来回传输的数据总量
     // 依照 Winbond 的说明 JEDEC ID 共返回 3 个字节，
     // 这里的值应该是需要传输的 byte 数 -1，也就是 2
-    qspi.dlr.write(|w| unsafe { w.dl().bits(2) });
+    qspi.dlr.write(|w| unsafe { w.dl().bits(3 - 1) });
 
     // 读 JEDEC ID 的命令的指令号为 0x9F，且没有地址阶段
     // 下面还是使用了简略写法，仅做了必要的修改
@@ -210,7 +209,7 @@ fn main() -> ! {
     // 这里又体现出 QUADSPI 模块的一个特性
     // 那就是 BUSY 状态与读取 DR 寄存器是相关联的
     // 由于 QuadSPI 上来回传送的数据的量不是固定的，
-    // 因此 QUADSPI 模块会一直挂 BUSY 位，直到收发了指定字节数的数据
+    // 因此 QUADSPI 模块会一直挂 BUSY 位，直到 AHB 从 DR 拉取的足够的数据，且 QUADSPI 的 FIFO 已经处于空的状态
     // 因此在读取的过程中，我们必须一直读取 DR 位，直到 BUSY 位被清空
     while qspi.sr.read().busy().bit_is_set() {
         // 不过，这里我们已经直到返回的总字节数为 3，因此一次读取返回的 4 byte 数据肯定就包含了所有我们需要的数据了
@@ -271,6 +270,7 @@ fn main() -> ! {
             (qspi.dr.read().data().bits() as u16).swap_bytes()
         );
     }
+    // W25Q32 这个型号读取到的数据应该为 0xEF15
 
     #[allow(clippy::empty_loop)]
     loop {}
