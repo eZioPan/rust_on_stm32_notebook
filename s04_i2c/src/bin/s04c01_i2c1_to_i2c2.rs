@@ -147,8 +147,8 @@ fn main() -> ! {
     unsafe {
         cp.NVIC.set_priority(interrupt::I2C3_ER, 2);
         cp.NVIC.set_priority(interrupt::I2C3_EV, 4);
-        cp.NVIC.set_priority(interrupt::I2C1_ER, 8);
-        cp.NVIC.set_priority(interrupt::I2C1_EV, 16);
+        cp.NVIC.set_priority(interrupt::I2C1_ERR, 8);
+        cp.NVIC.set_priority(interrupt::I2C1_EVT, 16);
     }
 
     // 为两个 I2C 设置 GPIO 引脚
@@ -303,8 +303,8 @@ fn setup_i2c_master() {
         master.trise.write(|w| w.trise().bits(33));
 
         unsafe {
-            NVIC::unmask(interrupt::I2C1_EV);
-            NVIC::unmask(interrupt::I2C1_ER)
+            NVIC::unmask(interrupt::I2C1_EVT);
+            NVIC::unmask(interrupt::I2C1_ERR)
         };
 
         // 由于 I2C 是半双工运行的，导致了 I2C 的两个特性
@@ -394,7 +394,7 @@ static G_RECEIVING_INT_CNT: Mutex<Cell<usize>> = Mutex::new(Cell::new(1));
 
 // 主设备一直连续发送 hello 这 5 个字母
 #[interrupt]
-fn I2C1_EV() {
+fn I2C1_EVT() {
     cortex_m::interrupt::free(|cs| {
         // 记录中断次数用
         let interrupt_counter = G_SENDING_INT_CNT.borrow(cs);
@@ -536,7 +536,7 @@ fn I2C1_EV() {
 }
 
 #[interrupt]
-fn I2C1_ER() {
+fn I2C1_ERR() {
     cortex_m::interrupt::free(|cs| {
         let dp_cellref = G_DP.borrow(cs).borrow();
         let dp = dp_cellref.as_ref().unwrap();

@@ -284,7 +284,7 @@ fn main() -> ! {
 }
 
 #[interrupt]
-fn RTC_ALARM() {
+fn EXTI17_RTC_ALARM() {
     cortex_m::interrupt::free(|_cs| unsafe {
         let dp = pac::Peripherals::steal();
         dp.EXTI.pr.modify(|_, w| w.pr17().clear());

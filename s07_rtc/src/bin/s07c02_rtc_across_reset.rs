@@ -189,7 +189,7 @@ fn enable_alarm_interrupt() {
         dp.EXTI.imr.modify(|_, w| w.mr17().unmasked());
 
         // 启用 RTC_Alarm 中断
-        unsafe { NVIC::unmask(interrupt::RTC_ALARM) };
+        unsafe { NVIC::unmask(interrupt::EXTI17_RTC_ALARM) };
 
         // 如果 RTC 的 Alarm A 的中断位已经被拉起来了，
         // 就立刻手动设置一下 Pending Register，触发一下中断处理
@@ -203,7 +203,7 @@ fn enable_alarm_interrupt() {
 }
 
 #[interrupt]
-fn RTC_ALARM() {
+fn EXTI17_RTC_ALARM() {
     cortex_m::interrupt::free(|cs| {
         let dp_ref = G_DP.borrow(cs).borrow();
         let dp = dp_ref.as_ref().unwrap();
