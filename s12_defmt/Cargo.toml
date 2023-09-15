@@ -8,7 +8,7 @@ edition.workspace = true
 
 [dependencies]
 cortex-m-rt = "*"
-stm32f4 = { version = "*", features = ["stm32f412"] }
+stm32f4xx-hal = { version = "*", features = ["stm32f412"] }
 defmt = "*"
 defmt-rtt = "*"
 panic-probe = { version = "*", features = ["print-defmt"] }
