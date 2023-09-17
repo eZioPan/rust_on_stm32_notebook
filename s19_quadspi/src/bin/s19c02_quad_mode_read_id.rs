@@ -196,16 +196,18 @@ fn main() -> ! {
     while qspi.sr.read().busy().bit_is_set() {}
     qspi.fcr.write(|w| w.ctcf().set_bit());
     qspi.dlr.write(|w| unsafe { w.dl().bits(2 - 1) });
-    qspi.abr.write(|w| unsafe { w.alternate().bits(0x0000) });
+    // 依照 W25Q32 的说明，Continous Read Mode bit 的值因该保持为 0xFx，这里使用了 0xFF
+    qspi.abr.write(|w| unsafe { w.alternate().bits(0xFF) });
     qspi.ccr.write(|w| unsafe {
         w.fmode().bits(0b01);
         w.imode().bits(0b01);
         w.admode().bits(0b11);
         w.adsize().bits(0b10);
+        // 注意，w25q32 中指出的 Continous Read Mode bit 是通过 quadspi 的 alternate byte 发送出去的
         w.abmode().bits(0b11);
-        w.absize().bits(0b01);
+        w.absize().bits(0b00);
         w.dmode().bits(0b11);
-        w.dcyc().bits(8 + 2);
+        w.dcyc().bits(4);
         w.instruction().bits(0x94);
         w
     });
