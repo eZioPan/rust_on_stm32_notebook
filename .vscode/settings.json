@@ -2,5 +2,6 @@
   // 默认情况下，rust-analyzer 会查询所有的 target
   // 但是 cortex-m 没有 test target，因此弹一个错误
   // 这里我们阻止 rust-analyzer 检查所有的 target，避免这个错误
-  "rust-analyzer.check.allTargets": false
+  "rust-analyzer.check.allTargets": false,
+  "rust-analyzer.check.command": "clippy"
 }
