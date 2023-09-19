@@ -1,22 +1,17 @@
-//! 在这个实验中，我们会检测芯片的型号，并开启 quad mode，之后以 quad mode 读写一些数据
-//!
-//! 在这里，由于没有什么 quadspi 模块的新知识，因此我们这里尝试使用 hal crate 来实现目标
-
 #![no_std]
 #![no_main]
 
+use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use stm32f4xx_hal::{
     pac::{CorePeripherals, Peripherals},
     prelude::*,
     qspi::{
-        AddressSize, Bank1, FlashSize, Qspi, QspiConfig, QspiMode, QspiReadCommand,
-        QspiWriteCommand,
+        AddressSize, Bank1, FlashSize, Qspi, QspiConfig, QspiMemoryMappedConfig, QspiMode,
+        QspiReadCommand, QspiWriteCommand,
     },
     timer::SysDelay,
 };
-
-use panic_rtt_target as _;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
@@ -28,7 +23,6 @@ fn main() -> ! {
     let cp = CorePeripherals::take().unwrap();
 
     let rcc = dp.RCC.constrain();
-    // 这里我们将 AHB 的始终配置到 48 MHz
     let clocks = rcc.cfgr.use_hse(12.MHz()).hclk(48.MHz()).freeze();
 
     let mut delay = cp.SYST.delay(&clocks);
@@ -51,73 +45,56 @@ fn main() -> ! {
             .flash_size(FlashSize::from_megabytes(4)),
     );
 
-    while qspi.is_busy() {}
-
     reboot_w25q32(&mut qspi, &mut delay);
     check_w25q32_id(&mut qspi);
     enable_quad_mode(&mut qspi, &mut delay);
 
-    let mut buf = [0u8; 8];
-
-    // 读取一下 Flash 中存储的原有的内容
-    qspi.indirect_read(
-        QspiReadCommand::new(&mut buf, QspiMode::QuadChannel)
-            .instruction(0xEB, QspiMode::SingleChannel)
-            .address(0x0, QspiMode::QuadChannel)
-            .alternate_bytes(&[0xFF], QspiMode::QuadChannel)
-            .dummy_cycles(4),
-    )
-    .unwrap();
-    rprintln!("{:X?}", buf);
-
-    // 注意，依照 W25Q32 的 datasheet，在每次执行写入命令之前，都必须执行写使能操作
     enable_write(&mut qspi, &mut delay);
-
-    // 清空区块
     qspi.indirect_write(
         QspiWriteCommand::default()
             .instruction(0x20, QspiMode::SingleChannel)
             .address(0x0, QspiMode::SingleChannel),
     )
     .unwrap();
-    // 这里是必须要等待的，因为清理区块，是要耗费一些时间的
     wait_w25q32_not_busy(&mut qspi, &mut delay);
 
-    // 然后我们读取以下清空后区块中的数据
-    // 这里读取到的应该都是 0xFF
-    qspi.indirect_read(
-        QspiReadCommand::new(&mut buf, QspiMode::QuadChannel)
-            .instruction(0xEB, QspiMode::SingleChannel)
-            .address(0x0, QspiMode::QuadChannel)
-            .alternate_bytes(&[0xFF], QspiMode::QuadChannel)
-            .dummy_cycles(4),
-    )
-    .unwrap();
-    rprintln!("{:X?}", buf);
-
-    // 由于我们已经执行过一次写入操作了，因此这里我们还得再执行一次写启用操作
     enable_write(&mut qspi, &mut delay);
-    // 然后是 quad mode 的写操作
     qspi.indirect_write(
         QspiWriteCommand::default()
             .instruction(0x32, QspiMode::SingleChannel)
             .address(0x0, QspiMode::SingleChannel)
-            .data(&[1, 2, 3, 4, 5, 6, 7, 8], QspiMode::QuadChannel),
+            .data("hello, world!".as_bytes(), QspiMode::QuadChannel),
     )
     .unwrap();
     wait_w25q32_not_busy(&mut qspi, &mut delay);
 
-    // 之后我们读取一下写入的数据
-    qspi.indirect_read(
-        QspiReadCommand::new(&mut buf, QspiMode::QuadChannel)
-            .instruction(0xEB, QspiMode::SingleChannel)
-            .address(0x0, QspiMode::QuadChannel)
-            .alternate_bytes(&[0xFF], QspiMode::QuadChannel)
-            .dummy_cycles(4),
-    )
-    .unwrap();
+    // 内存映射模式
+    // 在结果上看来，当 QUADSPI 处于内存映射模式时，Cortex 核心可以像读取内存一样读取 flash 的内容
+    // 实现方法应该是我们预先给出了读取 flash 的指令，然后在我们实际访问 QUADSPI 映射的空间的时候
+    // AHB 或 QUADSPI 会将 AHB 地址转换为 flash 地址，然后通过我们前面指定的 flash 指令从 flash 读取相应的数据
+    // 而且，为了降低再次读取数据的延迟，QUADSPI 会尝试继续读取数据，直到 FIFO 被塞满（也就是预载）
+    let memory_mapped = qspi
+        .memory_mapped(
+            QspiMemoryMappedConfig::default()
+                .instruction(0xEB, QspiMode::SingleChannel)
+                .address_mode(QspiMode::QuadChannel)
+                .data_mode(QspiMode::QuadChannel)
+                .alternate_bytes(&[0xFF], stm32f4xx_hal::qspi::QspiMode::QuadChannel)
+                .dummy_cycles(4),
+        )
+        .unwrap();
 
-    rprintln!("{:X?}", buf);
+    // 通过 .buffer() 获得一个 &[u8]，我们可以通过索引简单地访问 flash 中的数据
+    //
+    // 它的实现方法也很有意思，由于我们不可能（也没有意义）真的将整个 flash 中的数据读取到 SRAM 中
+    // 因此这个 &[u8]，是通过 core::slice::from_raw_paers() 这个 unsafe 函数，将 QUADSPI 映射的内存标记为 &[u8]
+    // 当我们通过索引访问数据中的数据的时候，实际上是 AHB 和 QUADSPI 在帮我们（Cortex 核心）获取数据的
+    let memory = memory_mapped.buffer();
+
+    rprintln!(
+        "memory map read: {}",
+        core::str::from_utf8(&memory[0..13]).unwrap()
+    );
 
     #[allow(clippy::empty_loop)]
     loop {}
@@ -149,8 +126,6 @@ fn check_w25q32_id(qspi: &mut Qspi<Bank1>) {
             .address(0x0, QspiMode::SingleChannel),
     )
     .unwrap();
-
-    rprintln!("{:X?}", buf);
 
     if (buf[0] as u16).checked_shl(8).unwrap() + buf[1] as u16 != 0xEF15 {
         panic!("Not a W25Q32 flash chip");
