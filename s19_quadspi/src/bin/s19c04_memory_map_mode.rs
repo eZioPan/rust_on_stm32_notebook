@@ -1,3 +1,8 @@
+//! QUADSPI 的 memory-map 内存映射模式
+//!
+//! 总的来说，内存映射模式是一种将 QUADSPI 上的 flash 的内存空间，映射为 Cortex 核心的内存空间的**仅读**模式
+//! 它常常用于简单地读取 flash 中的内容，或者从 flash 上执行代码的作用
+
 #![no_std]
 #![no_main]
 
