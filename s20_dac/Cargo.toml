@@ -1,0 +1,16 @@
+[package]
+name = "s20_dac"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cortex-m = "*"
+cortex-m-rt = "*"
+
+stm32f4xx-hal = { version = "*", features = ["stm32f413"] }
+
+rtt-target = { version = "*", features = ["cortex-m"] }
+panic-rtt-target = { version = "*", features = ["cortex-m"] }

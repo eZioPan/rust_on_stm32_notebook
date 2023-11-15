@@ -19,6 +19,7 @@ members = [
     "s17_low_power",
     "s18_rng",
     "s19_quadspi",
+    "s20_dac",
 ]
 
 [workspace.package]
