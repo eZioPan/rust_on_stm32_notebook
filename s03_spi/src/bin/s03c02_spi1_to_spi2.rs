@@ -50,7 +50,7 @@ fn main() -> ! {
 
     // 初始化 RCC，主要是初始化系统时钟
     let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.use_hse(8.MHz()).sysclk(64.MHz()).freeze();
+    let clocks = rcc.cfgr.use_hse(12.MHz()).sysclk(64.MHz()).freeze();
 
     // 初始化 SPI1 要使用的 GPIO Port A
     let gpioa = dp.GPIOA.split();
@@ -82,7 +82,7 @@ fn main() -> ! {
 
     // 让 SPI1 发出发送缓冲为空的中断
     // 该中断表示可以发送数据
-    spi_master.listen(spi::Event::Txe);
+    spi_master.listen(spi::Event::TxEmpty);
 
     // 初始化 SPI2 要使用的 GPIO Port B
     let gpiob = dp.GPIOB.split();
@@ -99,7 +99,7 @@ fn main() -> ! {
 
     // 让 SPI2 发出接收缓冲为空的中断
     // 该中断表示可以接收数据
-    spi_slave.listen(spi::Event::Rxne);
+    spi_slave.listen(spi::Event::RxNotEmpty);
 
     cortex_m::interrupt::free(|cs| {
         rprintln!("setup NVIC\r\n");

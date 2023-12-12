@@ -67,7 +67,7 @@ fn main() -> ! {
 
     let clocks = rcc
         .cfgr
-        .use_hse(8.MHz())
+        .use_hse(12.MHz())
         .sysclk(96.MHz())
         .require_pll48clk()
         .freeze();
@@ -84,10 +84,14 @@ fn main() -> ! {
 
     let mut my_usb = MyUSBClass::new(&usb_bus_alloc);
 
-    let usb_device_builder = UsbDeviceBuilder::new(&usb_bus_alloc, UsbVidPid(0x1209, 0x0001))
+    let default_desc = StringDescriptors::default()
         .manufacturer("random manufacturer")
         .product("random product")
         .serial_number("random serial");
+
+    let usb_device_builder = UsbDeviceBuilder::new(&usb_bus_alloc, UsbVidPid(0x1209, 0x0001))
+        .strings(&[default_desc])
+        .unwrap();
 
     let mut usb_dev = usb_device_builder.build();
 

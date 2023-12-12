@@ -31,6 +31,7 @@ use stm32f4xx_hal::{
 };
 use usb_device::{
     class_prelude::*,
+    device::StringDescriptors,
     endpoint,
     prelude::{UsbDeviceBuilder, UsbDeviceState, UsbVidPid},
 };
@@ -173,7 +174,7 @@ fn main() -> ! {
 
     let clocks = rcc
         .cfgr
-        .use_hse(8.MHz())
+        .use_hse(12.MHz())
         .sysclk(96.MHz())
         .require_pll48clk()
         .freeze();
@@ -194,11 +195,12 @@ fn main() -> ! {
 
     let usb_device_builder = UsbDeviceBuilder::new(&usb_bus_alloc, UsbVidPid(0x1209, 0x0001));
 
-    let mut usb_dev = usb_device_builder
+    let default_desc = StringDescriptors::default()
         .manufacturer("random manufacturer")
         .product("random product")
-        .serial_number("random serial")
-        .build();
+        .serial_number("random serial");
+
+    let mut usb_dev = usb_device_builder.strings(&[default_desc]).unwrap().build();
 
     // 下方，我将循环切分为了两个部分，
     // 第一个 loop{} 块为 USB 枚举所在的循环，

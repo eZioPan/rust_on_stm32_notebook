@@ -31,7 +31,7 @@ fn main() -> ! {
 
     let rcc = device_peripherals.RCC.constrain();
 
-    let cfgr = rcc.cfgr.use_hse(8.MHz());
+    let cfgr = rcc.cfgr.use_hse(12.MHz());
 
     // 将结构体 cfgr 的配置写入到底层的 RCC Configuration Register 上
     // 使用 freeze 作为函数名，表示该结构体不可以再被修改

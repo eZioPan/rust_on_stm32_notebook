@@ -64,7 +64,7 @@
           // 因此一定要 reset 到运行的状态之后，OpenOCD 才能正确捕获 RTT 的地址
           "monitor reset run",
           "monitor echo \"Set RTT\"",
-          "monitor rtt setup 0x20000000 0x07FF \"SEGGER RTT\"",
+          "monitor rtt setup 0x20000000 0x0FFF \"SEGGER RTT\"",
           "monitor echo \"Start RTT\\n\"",
           "monitor rtt start",
           // 最后让我们重置一下板子到停机的状态
@@ -91,7 +91,7 @@
         // 因此一定要 reset 到运行的状态之后，OpenOCD 才能正确捕获 RTT 的地址
         "monitor reset run",
         "monitor echo \"Set RTT\"",
-        "monitor rtt setup 0x20000000 0x07FF \"SEGGER RTT\"",
+        "monitor rtt setup 0x20000000 0x0FFF \"SEGGER RTT\"",
         "monitor echo \"Start RTT\\n\"",
         "monitor rtt start",
         // 最后让我们重置一下板子到停机的状态

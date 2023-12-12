@@ -155,7 +155,7 @@ fn main() -> ! {
 
     let clocks = rcc
         .cfgr
-        .use_hse(8.MHz())
+        .use_hse(12.MHz())
         .sysclk(96.MHz())
         .require_pll48clk()
         .freeze();
@@ -173,13 +173,16 @@ fn main() -> ! {
 
     let my_usb_class = MyUSBClass::new(usb_bus_alloc);
 
-    let usb_device_builder = UsbDeviceBuilder::new(usb_bus_alloc, UsbVidPid(0x1209, 0x0001));
-
-    let usb_device = usb_device_builder
+    let default_desc = StringDescriptors::default()
         .manufacturer("random manufacturer")
         .product("random product")
-        .serial_number("random serial")
-        .build();
+        .serial_number("random serial");
+
+    let usb_device_builder = UsbDeviceBuilder::new(usb_bus_alloc, UsbVidPid(0x1209, 0x0001))
+        .strings(&[default_desc])
+        .unwrap();
+
+    let usb_device = usb_device_builder.build();
 
     cortex_m::interrupt::free(|cs| {
         G_USB_DEVICE.borrow(cs).borrow_mut().replace(usb_device);

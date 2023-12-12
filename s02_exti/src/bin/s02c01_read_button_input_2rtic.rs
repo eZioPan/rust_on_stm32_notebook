@@ -22,7 +22,8 @@ mod app {
         gpio::{self, Edge, Input, Output, PinState},
         pac::TIM2,
         prelude::*,
-        timer::{CounterMs, Event},
+        timer::{CounterMs, Event, Flag},
+        ClearFlags,
     };
 
     // 在我们的案例中，由于灯需要闪动，所以灯的亮灭并不等价于灯在逻辑上的开和关
@@ -89,7 +90,7 @@ mod app {
             .RCC
             .constrain()
             .cfgr
-            .use_hse(8.MHz())
+            .use_hse(12.MHz())
             .sysclk(48.MHz())
             .freeze();
 
@@ -164,7 +165,7 @@ mod app {
     fn blink_led(mut ctx: blink_led::Context) {
         ctx.shared
             .timer
-            .lock(|timer| timer.clear_interrupt(Event::Update));
+            .lock(|timer| timer.clear_flags(Flag::Update));
         ctx.shared.led_state.lock(|state| match state {
             LEDLogicState::Off => unreachable!("Timer isn't shut down properly\r"),
             LEDLogicState::On => ctx.shared.led.lock(|led| led.toggle()),

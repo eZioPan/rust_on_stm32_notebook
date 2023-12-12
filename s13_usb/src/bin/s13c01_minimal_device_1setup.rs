@@ -126,7 +126,7 @@ fn main() -> ! {
     // 因此，我们这里启用外部晶振，尽量保持 device 端的总线时钟的精确
     let clocks = rcc
         .cfgr
-        .use_hse(8.MHz())
+        .use_hse(12.MHz())
         .sysclk(96.MHz()) // 注意，我们这里将 SYSCLK 的时钟设置到了较高的 96 MHz
         .require_pll48clk()
         .freeze();
@@ -170,10 +170,17 @@ fn main() -> ! {
     // 于是在开发和测试阶段，我们是可以使用这个 VID 的，而且这个 VID 下的前几个 PID 都是给 Test 使用的，因此我们也可以安全的使用前几个 PID 来测试效果
     //
     // 另外就是，我们可以在这里设置字符串类型的厂商名称、产品名称和产品序列号（注意序列号是字符串类型的，并非整数型的）
-    let usb_device_builder = UsbDeviceBuilder::new(&usb_bus_alloc, UsbVidPid(0x1209, 0x0001))
+
+    // 按语言构建设备的“描述符”，也就是我们上面说的厂商名称、产品名称和产品序列号
+    // 这里我们仅设置默认的语系下的描述
+    let default_desc = StringDescriptors::default()
         .manufacturer("random manufacturer")
         .product("random product")
         .serial_number("random serial");
+
+    let usb_device_builder = UsbDeviceBuilder::new(&usb_bus_alloc, UsbVidPid(0x1209, 0x0001))
+        .strings(&[default_desc])
+        .unwrap();
 
     // 调用 `.build()` 方法，构建实际的 UsbDevice 实例
     // 构建好后，UsbDevice 实例会处于 UsbDeviceState::Default 状态

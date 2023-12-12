@@ -200,7 +200,7 @@ mod my_usb_class {
             // 我们是通过 IAD 将多个 interface 合并为一个 function 的
             // 注意 IAD 的配置必须紧邻将要关联的 interface 的前面
             writer
-                .iad(self.iad0_iface0_index, 2, 0xFF, 0x00, 0x00)
+                .iad(self.iad0_iface0_index, 2, 0xFF, 0x00, 0x00, None)
                 .unwrap();
             writer
                 .interface(self.iad0_iface0_index, 0xFF, 0x00, 0x00)
@@ -271,7 +271,7 @@ fn main() -> ! {
 
     let clocks = rcc
         .cfgr
-        .use_hse(8.MHz())
+        .use_hse(12.MHz())
         .sysclk(96.MHz())
         .require_pll48clk()
         .freeze();
@@ -290,14 +290,17 @@ fn main() -> ! {
 
     let my_usb_class = MyUSBClass::new(usb_bus_alloc);
 
-    let usb_device_builder = UsbDeviceBuilder::new(usb_bus_alloc, UsbVidPid(0x1209, 0x0001));
-
-    let usb_dev = usb_device_builder
+    let default_desc = StringDescriptors::default()
         .manufacturer("random manufacturer")
         .product("random product")
-        .serial_number("random serial")
+        .serial_number("random serial");
+
+    let usb_device_builder = UsbDeviceBuilder::new(usb_bus_alloc, UsbVidPid(0x1209, 0x0001))
         .composite_with_iads()
-        .build();
+        .strings(&[default_desc])
+        .unwrap();
+
+    let usb_dev = usb_device_builder.build();
 
     cortex_m::interrupt::free(|cs| {
         G_USB_DEVICE.borrow(cs).borrow_mut().replace(usb_dev);
