@@ -7,8 +7,13 @@
 Flash Memory 的起始地址为 0x0800 0000，终止地址为 0x0807 FFFF，
 于是 FLASH 的 ORIGIN 要设置为 0x80000000，而总闪存大小为 0x0807 FFFF - 0x0800 0000 + 0x1 = 0x80000 Byte = 512KiB
 同理，
-SRAM 的起始地址为 0x2000 0000，终止地址为 0x2003 FFFF，
-于是 RAM 的 ORIGIN 要设置为 0x2000 0000，而总内存大小为 0x2003 FFFF - 0x2000 0000 + 0x1 = 0x40000 Byte = 256KiB
+SRAM 的起始地址为 0x2000 0000，终止地址为 0x2004 FFFF，
+于是 RAM 的 ORIGIN 要设置为 0x2000 0000，而总内存大小为 0x2004 FFFF - 0x2000 0000 + 0x1 = 0x50000 Byte = 320KiB
+
+NOTE:
+RAM 的 LENGHT 可以设置的比实际 SRAM 要小，但不可以比实际的 SRAM 要大，这是因为
+栈空间是从地址的高位向地址的低位“生长”的，如果我们设置的 LENGTH 大于 SRAM 的容量，那么在我们的代码创建栈顶的时候，
+就会直接写到一个不可以被访问的地址上去，会立刻产生 HardFault 硬错误
 
 关于 linker script 语法的说明，见 https://sourceware.org/binutils/docs/ld/MEMORY.html
 
