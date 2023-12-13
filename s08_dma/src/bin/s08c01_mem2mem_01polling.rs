@@ -203,6 +203,12 @@ fn main() -> ! {
         });
 
         // 【重要步骤】在启动前，清理全部的中断 flag
+        //
+        // 【特别注意】
+        // 在一次成功的 DMA transfer 之后，对应 Stream 的 TCIF 和 HTIF 都会被置 1
+        // 在这种情况下，我们是**无法**再次启动 Stream，执行下一次的 transfer 的
+        // 因此，在每次启动 Stream 前，都至少执行特定 Stream 的 TCIF 和 HTIF 的清理工作
+        //
         // 这里不可以使用 .reset() 方法，因为这个方法并不能触发 HISR 和 LISR 清空
         dma2.hifcr.write(|w| unsafe { w.bits(0xFFFF_FFFF) });
         dma2.lifcr.write(|w| unsafe { w.bits(0xFFFF_FFFF) });
