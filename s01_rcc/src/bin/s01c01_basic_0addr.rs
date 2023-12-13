@@ -41,8 +41,6 @@
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 
-use core::ptr::{read_volatile, write_volatile};
-
 #[allow(unused_imports, clippy::single_component_path_imports)]
 use stm32f4xx_hal;
 
@@ -57,95 +55,100 @@ fn main() -> ! {
     // 这里我们可以看看我们要等待多少次循环才能完成这个操作
     let mut wait_count: u32 = 1;
 
+    // RCC 相关的寄存器在内存中的地址的起始位置
+    // 在 reference manual 中，这些寄存器的实际地址都会标记为基于该地址的偏移
+    const RCC__BASE: u32 = 0x4002_3800;
+
+    // 启用外部时钟源
+    // CR 是 Control Register 的简称
+    const RCC_CR__OFFSET: u32 = 0x00;
+    const RCC_CR__ADDRESS: u32 = RCC__BASE + RCC_CR__OFFSET;
+    // 注意到 Cortex-M4 是 32 位的处理器，也就表示处理器一次性会读取 32 位的数据
+    // 因此将一个 bit 编码为一个地址是不合适的，所以，有很大概率一个地址上会保存多个寄存器的信息
+    // 因此我们必须用左右移操作配合 且/或/异或 操作来修改
+    //
+    // 在这里我们要访问取两个寄存器
+    // 第一个是 HSEON 表示 HSE ON，表示我们要启用外部时钟源
+    const RCC_CR__HSEON__BIT: u32 = 16;
+    // 第二个是 HSERDY 表示 HSE ReaDY，这是一个只读位置（仅由硬件写入的位置）
+    // 由于外部震荡源的启动和稳定都需要一段时间，因此我们必须监看这个位置，直到它返回 1
+    // 才能继续执行下面的操作
+    const RCC_CR__HSERDY__BIT: u32 = 17;
+
+    // 实际修改内存，以启动 HSE
+    // 这里使用了 core::ptr::read_volatile() 和 core::ptr::write_volatile() 读写寄存器
+    // 是为了防止编译器随意优化代码，导致这个地址的值并没有每个循环都取一下值，从而导致死循环
+    // 在不严谨的情况下，也可以使用下面这行代码替换
+    // *(RCC_CR__ADDRESS as *mut u32) |= 1 << RCC_CR__HSEON__BIT;
     unsafe {
-        // RCC 相关的寄存器在内存中的地址的起始位置
-        // 在 reference manual 中，这些寄存器的实际地址都会标记为基于该地址的偏移
-        const RCC__BASE: u32 = 0x4002_3800;
-
-        // 启用外部时钟源
-        // CR 是 Control Register 的简称
-        const RCC_CR__OFFSET: u32 = 0x00;
-        const RCC_CR__ADDRESS: u32 = RCC__BASE + RCC_CR__OFFSET;
-        // 注意到 Cortex-M4 是 32 位的处理器，也就表示处理器一次性会读取 32 位的数据
-        // 因此将一个 bit 编码为一个地址是不合适的，所以，有很大概率一个地址上会保存多个寄存器的信息
-        // 因此我们必须用左右移操作配合 且/或/异或 操作来修改
-        //
-        // 在这里我们要访问取两个寄存器
-        // 第一个是 HSEON 表示 HSE ON，表示我们要启用外部时钟源
-        const RCC_CR__HSEON__BIT: u32 = 16;
-        // 第二个是 HSERDY 表示 HSE ReaDY，这是一个只读位置（仅由硬件写入的位置）
-        // 由于外部震荡源的启动和稳定都需要一段时间，因此我们必须监看这个位置，直到它返回 1
-        // 才能继续执行下面的操作
-        const RCC_CR__HSERDY__BIT: u32 = 17;
-
-        // 实际修改内存，以启动 HSE
-        // 这里使用了 core::ptr::read_volatile() 和 core::ptr::write_volatile() 读写寄存器
-        // 是为了防止编译器随意优化代码，导致这个地址的值并没有每个循环都取一下值，从而导致死循环
-        // 在不严谨的情况下，也可以使用下面这行代码替换
-        // *(RCC_CR__ADDRESS as *mut u32) |= 1 << RCC_CR__HSEON__BIT;
-        write_volatile(
-            RCC_CR__ADDRESS as *mut u32,
-            read_volatile(RCC_CR__ADDRESS as *const u32) | 1 << RCC_CR__HSEON__BIT,
+        (RCC_CR__ADDRESS as *mut u32).write_volatile(
+            (RCC_CR__ADDRESS as *const u32).read_volatile() | 1 << RCC_CR__HSEON__BIT,
         );
+    }
 
-        // 这里我们让核心空转来等待震荡源稳定（到 8MHz）
-        // 而且可以记录一下等待的圈数
-        //
-        // 而且由于 RCC 是独立于 Cortex 核心的处理单元
-        // 因此，对于运行在 Cortex 核心上的 Rust 程序来说，即便我们读取的是 const 的裸指针
-        // 该地址的值也可能被 RCC 模块修改
-        // 同上，在不严谨的情况下，也可以使用下面这行代码替换，下面不再展示
-        // while *(RCC_CR__ADDRESS as *const u32) & 1 << RCC_CR__HSERDY__BIT == 0 {
-        //     wait_count += 1;
-        // }
-        while read_volatile(RCC_CR__ADDRESS as *const u32) & 1 << RCC_CR__HSERDY__BIT == 0 {
+    // 这里我们让核心空转来等待震荡源稳定（到 8MHz）
+    // 而且可以记录一下等待的圈数
+    //
+    // 而且由于 RCC 是独立于 Cortex 核心的处理单元
+    // 因此，对于运行在 Cortex 核心上的 Rust 程序来说，即便我们读取的是 const 的裸指针
+    // 该地址的值也可能被 RCC 模块修改
+    // 同上，在不严谨的情况下，也可以使用下面这行代码替换，下面不再展示
+    // while *(RCC_CR__ADDRESS as *const u32) & 1 << RCC_CR__HSERDY__BIT == 0 {
+    //     wait_count += 1;
+    // }
+    unsafe {
+        while (RCC_CR__ADDRESS as *const u32).read_volatile() & 1 << RCC_CR__HSERDY__BIT == 0 {
             wait_count += 1;
         }
+    }
 
-        // 将外部时钟源设置为系统时钟
-        // CFGR 为 ConFiGuration Register 的缩写
-        const RCC_CFGR__OFFSET: u32 = 0x08;
-        const RCC_CFGR__ADDRESS: u32 = RCC__BASE + RCC_CFGR__OFFSET;
-        // SW 为 SWitch 的缩写，这两个 bit 用来切换 SYSCLK 的来源
-        const RCC_CFGR__SW__BIT: u32 = 0;
-        // 注意 SW 是两位的
-        write_volatile(
-            RCC_CFGR__ADDRESS as *mut u32,
-            read_volatile(RCC_CFGR__ADDRESS as *const u32) | 0b01 << RCC_CFGR__SW__BIT,
+    // 将外部时钟源设置为系统时钟
+    // CFGR 为 ConFiGuration Register 的缩写
+    const RCC_CFGR__OFFSET: u32 = 0x08;
+    const RCC_CFGR__ADDRESS: u32 = RCC__BASE + RCC_CFGR__OFFSET;
+    // SW 为 SWitch 的缩写，这两个 bit 用来切换 SYSCLK 的来源
+    const RCC_CFGR__SW__BIT: u32 = 0;
+    // 注意 SW 是两位的
+    unsafe {
+        (RCC_CFGR__ADDRESS as *mut u32).write_volatile(
+            (RCC_CFGR__ADDRESS as *const u32).read_volatile() | 0b01 << RCC_CFGR__SW__BIT,
         );
+    }
 
-        const RCC_CFGR__SWS_BIT: u32 = 2;
-        // 等待系统时钟切换完成
-        while (read_volatile(RCC_CFGR__ADDRESS as *const u32) >> RCC_CFGR__SWS_BIT) & 0b01 != 0b01 {
-        }
+    const RCC_CFGR__SWS_BIT: u32 = 2;
+    // 等待系统时钟切换完成
+    unsafe {
+        while ((RCC_CFGR__ADDRESS as *const u32).read_volatile() >> RCC_CFGR__SWS_BIT) & 0b01
+            != 0b01
+        {}
+    }
 
-        // 启用 APB2 总线上 ADC1 的时钟
-        // APB2ENR 为 APB2 ENable Register 的缩写
-        const RCC_APB2ENR__OFFSET: u32 = 0x44;
-        const RCC_APB2ENR__ADDRESS: u32 = RCC__BASE + RCC_APB2ENR__OFFSET;
-        // ADC1EN 为 ADC1 ENable 的缩写
-        const RCC_APB2ENR__ADC1EN__BIT: u32 = 8;
-        write_volatile(
-            RCC_APB2ENR__ADDRESS as *mut u32,
-            read_volatile(RCC_APB2ENR__ADDRESS as *const u32) | 1 << RCC_APB2ENR__ADC1EN__BIT,
+    // 启用 APB2 总线上 ADC1 的时钟
+    // APB2ENR 为 APB2 ENable Register 的缩写
+    const RCC_APB2ENR__OFFSET: u32 = 0x44;
+    const RCC_APB2ENR__ADDRESS: u32 = RCC__BASE + RCC_APB2ENR__OFFSET;
+    // ADC1EN 为 ADC1 ENable 的缩写
+    const RCC_APB2ENR__ADC1EN__BIT: u32 = 8;
+
+    unsafe {
+        (RCC_APB2ENR__ADDRESS as *mut u32).write_volatile(
+            (RCC_APB2ENR__ADDRESS as *const u32).read_volatile() | 1 << RCC_APB2ENR__ADC1EN__BIT,
         );
+    }
 
-        // 启用 ADC1 的 SCAN 模式
-        const ADC1__BASE_ADDRESS: u32 = 0x4001_2000;
-        // 特别注意，由于每个 ADC 的寄存器的配置都是相同的，因此文档里不会区分 ADC 的名称
-        // 也就是说文档里寄存器的名字会是 ADC_CR1 而非 ADC1_CR1
-        // 其次，由于 ADC 的配置参数比较多，因此 Control Register 也有两个：CR1 和 CR2
-        const ADC1_CR1__OFFSET: u32 = 0x04;
-        const ADC1_CR1__ADDRESS: u32 = ADC1__BASE_ADDRESS + ADC1_CR1__OFFSET;
-        const ADC1_CR1__SCAN__BIT: u32 = 8;
-        write_volatile(
-            ADC1_CR1__ADDRESS as *mut u32,
-            read_volatile(ADC1_CR1__ADDRESS as *const u32) | 1 << ADC1_CR1__SCAN__BIT,
+    // 启用 ADC1 的 SCAN 模式
+    const ADC1__BASE_ADDRESS: u32 = 0x4001_2000;
+    // 特别注意，由于每个 ADC 的寄存器的配置都是相同的，因此文档里不会区分 ADC 的名称
+    // 也就是说文档里寄存器的名字会是 ADC_CR1 而非 ADC1_CR1
+    // 其次，由于 ADC 的配置参数比较多，因此 Control Register 也有两个：CR1 和 CR2
+    const ADC1_CR1__OFFSET: u32 = 0x04;
+    const ADC1_CR1__ADDRESS: u32 = ADC1__BASE_ADDRESS + ADC1_CR1__OFFSET;
+    const ADC1_CR1__SCAN__BIT: u32 = 8;
+    unsafe {
+        (ADC1_CR1__ADDRESS as *mut u32).write_volatile(
+            (ADC1_CR1__ADDRESS as *const u32).read_volatile() | 1 << ADC1_CR1__SCAN__BIT,
         );
-
-        // 返回等待外部震荡器稳定的循环次数
-        wait_count
-    };
+    }
 
     // 最后我们来读取一下时钟的实际状态
     unsafe {
@@ -162,7 +165,7 @@ fn main() -> ! {
         rprintln!("Raw Register Modify\r");
 
         // 0b01 是使用 HSE 的寄存器状态
-        if (read_volatile(RCC_CFGR__ADDRESS as *const u32) >> RCC_CFGR__SWS__BIT)
+        if ((RCC_CFGR__ADDRESS as *const u32).read_volatile() >> RCC_CFGR__SWS__BIT)
             & RCC_CFGR__SWS__MASK
             == 0b01
         {
