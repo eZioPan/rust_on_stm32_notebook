@@ -9,7 +9,7 @@ use core::cell::RefCell;
 use cortex_m::{interrupt::Mutex, peripheral::NVIC};
 
 use panic_rtt_target as _;
-use rtt_target::{rprint, rprintln, rtt_init_print};
+use rtt_target::{rprintln, rtt_init_print};
 
 use stm32f4xx_hal::{
     interrupt,
@@ -28,12 +28,6 @@ fn main() -> ! {
     let mut cp = CorePeripherals::take().unwrap();
 
     // 这里启用了 Cortex 的 SCB 模块的 SCR 寄存器下的 SLEEPONEXIT 位
-    //
-    // 可以尝试注释掉下面这行，你就会发现，每次 LED 灯改变状态的时候，RTT 窗口都会更新 "empty looping" 的输出
-    // 此时每次 MCU 进入 Sleep mode，都是由 loop 循环里的 WFI 指令发出的
-    //
-    // 如果我们启用了这行，那么 RTT 窗口是看不到 "empty looping" 的输出的
-    // 此时，除了第一个 Sleep 是由 loop 里的 WFI 指令产生的，其后的 Sleep 都是设置了 SleepOnExit 的效果
     cp.SCB.set_sleeponexit();
 
     dp.DBGMCU.cr.reset();
@@ -71,13 +65,10 @@ fn main() -> ! {
 
     unsafe { NVIC::unmask(interrupt::TIM2) };
 
-    let mut cnt: u16 = 1;
-
-    loop {
-        cortex_m::asm::wfi();
-        rprint!("\x1b[2K\rempty looping: {}", cnt);
-        cnt += 1;
-    }
+    // 如果我们开启了 Sleep on Exit，那么程序就不会 panic
+    // 因为程序压根就不会执行到 unreachable!() 这一行上。
+    cortex_m::asm::wfi();
+    unreachable!("Don't forget to enable Sleep on Exit");
 }
 
 #[interrupt]
