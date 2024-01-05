@@ -89,6 +89,7 @@
 
 use core::cell::{Cell, RefCell};
 use cortex_m::{interrupt::Mutex, peripheral::NVIC};
+use rtt_target::ChannelMode;
 
 use panic_rtt_target as _;
 use rtt_target::rtt_init_print;
@@ -124,7 +125,7 @@ fn main() -> ! {
     // 这样我们就有机会分辨出，某行没有打印出来，是 I2C 没有动作导致的（整行都没有），还是 RTT 主动丢弃的（有可能显示出半行来）
     //
     // 第二个参数指的是，RTT 缓存空间的字节数，默认值为 1024，就我们的 I2C 通信内容来说稍稍有点小，这里改为 4096 会比较好
-    rtt_init_print!(NoBlockTrim, 4096);
+    rtt_init_print!(ChannelMode::NoBlockTrim, 4096);
 
     let dp = Peripherals::take().expect("Cannot Get Peripherals");
 

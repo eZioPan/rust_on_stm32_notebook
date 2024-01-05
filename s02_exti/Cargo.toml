@@ -17,8 +17,8 @@ cortex-m-rt = "*"
 # 特别指定了 STM32F413 作为具体的芯片，并启用了对 rtic 的支持（以使用 cortex-m-rtic crate）
 stm32f4xx-hal = { version = "*", features = ["stm32f413", "rtic"] }
 
-rtt-target = { version = "*", features = ["cortex-m"] }
-panic-rtt-target = { version = "*", features = ["cortex-m"] }
+rtt-target = { version = "*" }
+panic-rtt-target = { version = "*" }
 
 # 一个实时的、中断驱动的、并发框架
 rtic = { version = "*", features = ["thumbv7-backend"] }

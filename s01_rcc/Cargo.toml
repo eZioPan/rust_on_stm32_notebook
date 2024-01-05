@@ -16,6 +16,6 @@ cortex-m-rt = "*"
 stm32f4xx-hal = { version = "*", features = ["stm32f413"] }
 
 # 启用 RTT
-rtt-target = { version = "*", features = ["cortex-m"] }
+rtt-target = { version = "*" }
 # 将 panic 信息通过 RTT 传递给主机
-panic-rtt-target = { version = "*", features = ["cortex-m"] }
+panic-rtt-target = { version = "*" }
