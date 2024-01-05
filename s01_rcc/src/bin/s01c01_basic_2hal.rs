@@ -29,6 +29,9 @@ fn main() -> ! {
 
     let device_peripherals = pac::Peripherals::take().unwrap();
 
+    // 这里的 .constain() 约束，实际上指的是在**编译期**约束 rcc::Rcc 这个结构体的内容
+    // 毕竟 hal 库是写给整个 stm32f4 系列所有的 MCU 使用的，而不同的 MCU 中 RCC 的内容是不同的
+    // 因此要依据当前所选的 MCU 的型号，对 rcc::Rcc 结构体的内容进行限制
     let rcc = device_peripherals.RCC.constrain();
 
     let cfgr = rcc.cfgr.use_hse(12.MHz());
